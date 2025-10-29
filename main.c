@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include "bfs_matrix.h"
+#include "Input/validation.h"
+
 
 int main(void) {
+    
     int n = 6;
     int adj[6][6] = {
         {0,1,0,0,0,0},
