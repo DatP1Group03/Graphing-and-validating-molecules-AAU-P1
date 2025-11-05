@@ -1,10 +1,31 @@
 #include <stdio.h>
 #include "bfs_matrix.h"
 #include "Input/validation.h"
+#include "valence_check.h"
+
+#define MaxInput 256
 
 
 int main(void) {
-    
+    char input[MaxInput];
+
+    printf("Input smiles");
+    scanf("%c", input);
+    if (validate_smiles(input)) {
+        //Kør smiles til adjacency
+        //Kør smiles til node
+        //if ()//valence_check med (smiles_size, input,matrix(fra adj))
+            //Gør noget mere
+    }
+
+    /* int matrix[3][3] = {
+        {0, 1, 0},
+        {1, 0, 1},
+        {0, 1, 0}
+    };
+    run_valence_check(smiles_size,"CCO",matrix );
+     //TEST KODE*/ //
+
     int n = 6;
     int adj[6][6] = {
         {0,1,0,0,0,0},

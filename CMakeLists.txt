@@ -10,5 +10,5 @@ add_subdirectory(Input)
 include(cmake/mtest.cmake)
 
 enable_testing()
-target_link_libraries(main bfs_matrix validation m)
+target_link_libraries(main bfs_matrix validation valence_check m)
 add_subdirectory(test)

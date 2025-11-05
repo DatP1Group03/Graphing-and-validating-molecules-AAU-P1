@@ -11,6 +11,8 @@ int validate_smiles(const char *input);
 void add_error(const char *msg, int pos);
 void print_errors(void);
 //Variabler
+
+extern int smiles_size;
 extern int smiles_count;
 extern char smiles_symbols[];
 

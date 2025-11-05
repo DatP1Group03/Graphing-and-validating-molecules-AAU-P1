@@ -24,6 +24,7 @@ typedef struct {
 
 Error errors[MAX_ERRORS]; // arrray af error struct
 int error_count = 0;
+int smiles_size = 0;
 
 char smiles_symbols[] = { // GYLDIGE SMILES KARAKTER
     'C', 'N', 'O', 'S',
@@ -121,6 +122,7 @@ void ring_closed(const char *input) {
     int balance[10] = {0}; // til at holde styr på 9 mulige ringe(maksimum i SMILES)
 
     for (int i = 0; input[i] != '\0'; i++) {
+        smiles_size++;
         if (isalpha(input[i]) && input[i+1] != '\0' && isdigit(input[i+1])) {
             int d = input[i+1] - '0'; // d er sat til den digit vi har fundet efter en atom,
             if (d < 0 || d > 9) { // til at håndtere eg. 10, så vil digit = 0, derfor laver vi et hurtig tjek
