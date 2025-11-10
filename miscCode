@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+
+// to do
+// Must create symbols and rules for those symbols, such as [] () - = $
+// Potentially also charges + -
+
+
+#define max_atoms 30   //  molecule max atom limit
+
+struct atom {
+    char letter;             // first letter e.g. C, H, O, N
+    int id;                  // atom ID
+    int bondtype;            // single, double, triple as a maximum allowed
+    int bondlimit;           // max bonds
+    int bondcount;           // how many connections it currently has
+    int connectedatoms[8];  // index of connected atoms
+};
+
+
+struct molecule {
+    struct atom atoms[max_atoms];
+    int atomcount;
+    char atomletter;
+};
+
+
+int main(void)
+{
+    char smiles[30];
+    struct atom carbon = {'C', 6, 3, 4, 0, {0}};
+    struct atom oxygen = {'O', 8, 2, 2, 0, {0}};
+    struct atom nitrogen = {'N', 7, 3, 3, 0, {0}};
+    struct atom hydrogen = {'H', 1, 1, 1, 0, {0}};
+
+    printf("Atom IDs are: \n"
+           "Carbon %d \n"
+           "Oxygen %d \n"
+           "Nitrogen %d \n"
+           "Hydrogen %d \n", carbon.id, oxygen.id, nitrogen.id, hydrogen.id);
+    printf("Max bonding types are: \n"
+           "Carbon %d \n"
+           "Oxygen %d \n"
+           "Nitrogen %d \n"
+           "Hydrogen %d \n", carbon.bondtype, oxygen.bondtype, nitrogen.bondtype, hydrogen.bondtype);
+    printf("Bond limits are: \n"
+           "Carbon %d \n"
+           "Oxygen %d \n"
+           "Nitrogen %d \n"
+           "Hydrogen %d \n", carbon.bondlimit, oxygen.bondlimit, nitrogen.bondlimit, hydrogen.bondlimit);
+    printf("the letters representing them are: \n"
+           "Carbon %c \n"
+           "Oxygen %c \n"
+           "Nitrogen %c \n"
+           "Hydrogen %c \n", carbon.letter, oxygen.letter, nitrogen.letter, hydrogen.letter);
+
+    printf("Insert smiles string: \n");
+    scanf("%29s", smiles);
+
+
+        // initialize molecule
+        struct molecule mol;
+        mol.atomcount = 0;
+
+        int last_atom = -1;  //keeps track of previous atom
+
+        // SMILES string and add atoms loop
+        for (int i = 0; smiles[i] != '\0'; i++) {
+
+            if (isalpha(smiles[i])) {  //if is a letter
+                struct atom new_atom;
+                new_atom.letter = smiles[i];
+                new_atom.id = mol.atomcount+1;
+                new_atom.bondcount = 0;
+
+                mol.atoms[mol.atomcount] = new_atom;
+
+                // connect to previous atom if there is one
+                if (last_atom != -1) {
+                    int current = mol.atomcount;
+                    mol.atoms[last_atom].connectedatoms[mol.atoms[last_atom].bondcount++] = current;
+                    mol.atoms[current].connectedatoms[mol.atoms[current].bondcount++] = last_atom;
+                }
+
+                last_atom = mol.atomcount;
+                mol.atomcount++;
+            }
+            else if (smiles[i] == '(') {
+                // Deal with ( sign
+            }
+            else if (isdigit(smiles[i])) {
+                // Deal with numbers
+            }
+            else if (smiles[i] == '=') {
+                // Deal with = sign
+            }
+            else if (smiles[i] == '#') {
+                // Deal with # sign
+            }
+            else if (smiles[i] == '-') {
+                printf("explicit single bonds are not required, please re-enter smiles string without explicit single bonds.\n");
+                return 1;
+            }
+            else if (smiles[i] == '\0') {
+                break;
+            }
+            else {
+                return 2;
+            }
+        }
+        printf("Molecule with %d atoms:\n", mol.atomcount);
+        for (int i = 0; i < mol.atomcount; i++) {
+            printf("Atom %d: %c connected to ", mol.atoms[i].id, mol.atoms[i].letter);
+            for (int j = 0; j < mol.atoms[i].bondcount; j++) {
+                printf("%d ", (mol.atoms[i].connectedatoms[j] + 1));
+            }
+            printf("\n");
+        }
+
+        return 0;
+    }
+
+/*
+
+
+/* ) Atom struct for individual atoms within molecule
+struct atom {
+    char symbol;                   // atom symbol:'C', 'O' etc
+    int id;                        // unique atom ID
+    int connected_atoms[8];        // indices of connected atoms
+    int connections;               // number of connections this node has to other nodes
+};
