@@ -9,8 +9,8 @@
 int main(void) {
     char input[MaxInput];
 
-    printf("Input smiles");
-    scanf("%c", input);
+    printf("Input smiles: ");
+    scanf("%s", input);
     if (validate_smiles(input)) {
         //Kør smiles til adjacency
         //Kør smiles til node
@@ -25,7 +25,16 @@ int main(void) {
     };
     run_valence_check(smiles_size,"CCO",matrix );
      //TEST KODE*/ //
+    int test[6][6] = {
+        {0,1,0,0,0,0},
+        {1,0,1,0,0,0},
+        {0,1,0,1,0,0},
+        {0,0,1,0,1,0},
+        {0,0,0,1,0,1},
+        {0,0,0,0,5,0}
+    };
 
+    run_valence_check(atom_count,"C-C-C-C-C-C",test);
     int n = 6;
     int adj[6][6] = {
         {0,1,0,0,0,0},

@@ -9,10 +9,10 @@ typedef struct {
 
 extern Atom *atoms;
 
+int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]);
 void create_atoms(int smiles_size, const char input[]);
-void fillAtoms(int smiles_size, int matrix[smiles_size][smiles_size]);
+void fillAtoms(int atom_size, int matrix[atom_size][atom_size]);
 void fill_implicit_hydrogen(int size);
 int valence_check_struct(int size);
-int run_valence_check(int smiles_size, const char input[],int matrix[smiles_size][smiles_size]);
 
 #endif

@@ -13,6 +13,8 @@ void print_errors(void);
 //Variabler
 
 extern int smiles_size;
+extern int atom_count;
+extern int smiles_input_size;
 extern int smiles_count;
 extern char smiles_symbols[];
 

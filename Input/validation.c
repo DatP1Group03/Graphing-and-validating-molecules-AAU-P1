@@ -25,6 +25,7 @@ typedef struct {
 Error errors[MAX_ERRORS]; // arrray af error struct
 int error_count = 0;
 int smiles_size = 0;
+int atom_count = 0;
 
 char smiles_symbols[] = { // GYLDIGE SMILES KARAKTER
     'C', 'N', 'O', 'S',
@@ -36,7 +37,7 @@ char smiles_symbols[] = { // GYLDIGE SMILES KARAKTER
 };
 
 int smiles_count = sizeof(smiles_symbols) / sizeof(smiles_symbols[0]);
-int smiles_input_size;
+int smiles_input_size = 0;
 
 void add_error(const char *msg, int pos) {
     if (error_count < MAX_ERRORS) { // hvis mindre end max tilladte errors
@@ -47,12 +48,11 @@ void add_error(const char *msg, int pos) {
 }
 void is_permitted(const char *input) {
     smiles_input_size = 0;
+    atom_count = 0;
 
 
     for (int i = 0; input[i] != '\0'; i++) { // loop igennem vores input array
         int match_found = 0; // nulstilles ved hver itteration
-        smiles_input_size++;
-
         for (int m = 0; m < smiles_count; m++) {
             if (input[i] == smiles_symbols[m]) {
                 match_found = 1; // sæt til 0, og så starter vi næste itteration
@@ -67,6 +67,23 @@ void is_permitted(const char *input) {
     }
 
 
+}
+
+int count_smiles(const char *input) {
+    int smile_size = 0;
+    for (int i = 0; input[i] != '\0';i++) {
+        smile_size++;
+    }
+    return smile_size;
+}
+int count_atoms(const char *input) {
+    int count_of_atoms = 0;
+    for (int i = 0; input[i] != '\0';i++) {
+        if (isalpha(input[i])) {
+            count_of_atoms++;
+        }
+    }
+    return count_of_atoms;
 }
 void closed_brackets(const char *input) {
     char stack_parantheses[MAX_INPUT]; //tallet kommer fra maxInput men har ik sat det ind endnu.
@@ -178,6 +195,8 @@ int validate_smiles(const char *input) {
     // kør alle vores tjeks, og sæt error_count til 0 igen, fordi main() bare kører den igen.
     error_count = 0;
     is_permitted(input);
+    smiles_input_size = count_smiles(input);
+    atom_count = count_atoms(input);
     closed_brackets(input);
     ring_closed(input);
     misc_check(input);
