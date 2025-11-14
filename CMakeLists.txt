@@ -9,5 +9,5 @@ add_subdirectory(Databehandling)
 include(cmake/mtest.cmake)
 
 enable_testing()
-target_link_libraries(main bfs_matrix m)
+target_link_libraries(main bfs_matrix dfs_matrix m)
 add_subdirectory(test)
