@@ -1,0 +1,3 @@
+add_library(Adjacency_matrix Adjacency_matrix.c)
+target_link_libraries(Adjacency_matrix m)
+target_include_directories(Adjacency_matrix PUBLIC .)

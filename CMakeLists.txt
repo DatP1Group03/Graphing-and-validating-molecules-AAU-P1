@@ -8,6 +8,9 @@ add_executable(main main.c)
 add_subdirectory(Databehandling)
 include(cmake/mtest.cmake)
 
+add_subdirectory(adjacency_matrix)
+target_link_libraries(main Adjacency_matrix)
+
 enable_testing()
 target_link_libraries(main bfs_matrix m)
 add_subdirectory(test)
