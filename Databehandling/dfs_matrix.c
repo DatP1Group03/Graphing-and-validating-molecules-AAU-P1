@@ -14,33 +14,63 @@
  */
 int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int count) {
     // we mark node as visited, by using our matrix visited, we also insert ved node into the bfs matrix for the "list" of traversal.
+    printf("We mark: %d as visited and add it to our list. and its neighbours are { ", startnode);
     visited[startnode] = 1;
-
     dfsmatrix[count++] = startnode;
 
 
 
-    // We are going to run thorugh the row of the adj corresponding to the startnode, and see what the node is connected to.
+    // We are going to run thorugh the row of the adj corresponding to the startnode, and see what the node is connected to. simply for learning purposes.
+    int no_comma_on_first = 1; // this value is only used to secure that we dont get comma on first. Her we print comma first and then number so we are sured that we dont get comma on the last one.
     for (int i = 0; i < n; i++) {
         if (adj[startnode][i] == 1) {
-            printf("%d er en nabo til %d \n", i, startnode );
+            if (!no_comma_on_first) {
+                printf(", ");
+            }
+            printf("%d", i );
+            no_comma_on_first = 0;
         }
     }
+    printf("}\n");
 
     // now we are going to explore all adjacent vertices as deep as possible before, and we just do it in nummerical order (as they come in the neighbours array).
     for (int i = 0; i < n; i++) {
         if (adj[startnode][i] == 1 && visited[i] != 1) {
+            printf("we are now going to visit %d. Our DFS list consist of: { ", i);
+
+            int no_comma_on_first = 1;
+            for (int j = 0; j < count; j++) {
+                if (!no_comma_on_first) {
+                    printf(", ");
+                }
+                printf("%d", dfsmatrix[j]);
+                no_comma_on_first = 0;
+            }
+            printf("}\n");
+
             parent[i] = startnode;
             count = dfs_matrix(i, n, adj, dfsmatrix, visited, parent, count);
         }
-        /* vi kan her tjekke om der en cyklus! Dette kan vi idet at vi ved at hvis man gennemløberne naboerne til en node,
-         * og vi finder en nabo som allerede er visited, og at denne ikke er vores "forældre", altså der vi kom fra, så har vi en
-         * cyklus i det vi så kan gå tilbage. Dette kan vi sætte op som følgende betingelser */
-        else if (adj[startnode][i] == 1 && visited[i] == 1 && i != parent[startnode]) {
-            printf("der er fundet en cyklus! \n");
-            printf("Vi har at den går fra %d til %d og så tilbage til %d i vores DFS liste!\n", startnode, i, startnode);
+        /* we can check here if there is a cycle! We can do this because we know that if we traverse the neighbors of a node,
+         * and we find a neighbor who has already been visited, and that this is not our "parents", i.e. where we came from, then we have a
+         * cycle in which we can then go back. We can set this up as the following conditions
+         * however, I have added an extra condition, namely that startnode < i, because then it will only be detected once :) otherwise you will
+         * make it detect first around to the right, and then also where you go left, i.e. detect 1 --> 3 and then 3 --> 1.
+         */
+        else if (adj[startnode][i] == 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
+            printf("Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)\n",
+            startnode, parent[startnode], i, parent[i]);
 
         }
+
+        }
+
+    if (parent[startnode] != -1) {
+        printf("Since all neighbours of %d are now visited, we backtrack to node %d.\n",
+               startnode, parent[startnode]);
+    } else {
+        printf("Since all neighbours of %d are now visited, DFS from the root is complete here.\n",
+               startnode);
     }
     return count;
 }
@@ -55,3 +85,17 @@ int DFS_cycledetektion(int n, const int adj[][], const int dfsmatrix[], const in
     }
 }
 */
+
+void print_DFS_explanation() {
+    printf("DFS (Stands for Depth-First Search) goes along a path as deeply as possible along each branch before backtracking. \n");
+    printf("DFS starts at a chosen node and visits it. \n");
+    printf("It then looks at all the neighbours (all nodes it has connection to) of that node and follows the first neighbour it finds. \n");
+    printf("From that neighbour, it again looks at its neighbours and continues going forward as long as there is an unvisited neighbour to follow. \n");
+    printf("When it reaches a node where all neighbours have already been visited, it backtracks — meaning it goes back to the node it came from, and continues with the next neighbour there.\n");
+    printf("DFS continues this pattern of: \n");
+    printf("1. go foward to an unvisited neighbour \n");
+    printf("2. backtrack when stuck \n");
+    printf("3. continue from the previous node \n");
+    printf("Until all reachable nodes have been visited \n");
+    printf("We are now going to perform DFS on the molecule \n");
+}

@@ -9,3 +9,4 @@
 
 
 int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int count);
+void print_DFS_explanation();

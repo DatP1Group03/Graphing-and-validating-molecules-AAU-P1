@@ -30,20 +30,11 @@ int main(void) {
 
 
     int dfsmatrixarr[6];
-    int visited[6];
-    int parent[6];
-
+    int visited[6] = {0}; //Important that we initial our arrays, for visited to 0, so we know the values of it if there isnt a connection.
+    int parent[6] = {-1};  //Important that we initial our arrays, for parent to -1, so we know the values of parent[0] also will be -1.
+    print_DFS_explanation();
     int dfs_count = dfs_matrix(0, n, adj, dfsmatrixarr, visited,parent, 0);
-    printf("%d \n", dfs_count);
+    printf(" >>> DFS finished, returned a list with %d and our number of atom in molecules is %d \n", dfs_count, n);
 
-    printf("DFS matrixen:");
-    for (int i = 0; i < dfs_count; i++) {
-        printf("%d", dfsmatrixarr[i]);
-    }
-
-    printf("\n og parent matrixen er:");
-    for (int i = 0; i < dfs_count; i++) {
-        printf("%d", parent[i]);
-    }
     return 0;
 }
