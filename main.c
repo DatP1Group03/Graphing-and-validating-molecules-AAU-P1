@@ -27,22 +27,5 @@ int main(void) {
     else
         printf("Grafen er IKKE sammenhængende fra node 0\n");
 
-
-
-    char* SMILES = "CN1C=NC2=C1C(=O)N(C)C(=O)N2C";
-    int atom_count = get_atom_count(SMILES);
-    int Adj[atom_count][atom_count];
-
-    for (int i = 0; i<atom_count; i++ ) {
-        for (int j = 0; j<atom_count; j++) {
-            Adj[j][i]= 0;
-        }
-    }
-
-    create_adjacency_matrix(SMILES, atom_count, Adj);
-
-    print_ADJ(Adj,atom_count);
-
-
     return 0;
 }
