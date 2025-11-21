@@ -2,6 +2,7 @@
 #include "bfs_matrix.h"
 #include "dfs_matrix.h"
 #include "Input/validation.h"
+#include "Adjacency_matrix.h"
 #include "valence_check.h"
 
 #define MaxInput 256
