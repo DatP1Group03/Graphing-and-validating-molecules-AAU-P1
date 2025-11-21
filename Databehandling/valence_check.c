@@ -21,7 +21,7 @@ int *atomIndices = NULL;
 int atomCount = 0; // Holder styr på antal faktiske atomer
 
 // Fyld atom arrayet med ingenting (med mindre jeg får noget fra et andet sted, så skal jeg nok assign det til det)
-void create_atoms(int smiles_size, const char input[]) {
+void create_molecule(int smiles_size, const char input[]) {
 
     int currentID = 0;
     atomCount = 0;
@@ -30,16 +30,43 @@ void create_atoms(int smiles_size, const char input[]) {
     atomIndices = malloc(sizeof(int) * smiles_size);
 
     for (int i = 0; i < smiles_size; i++) {
+
+        //Default Værdier her, Type bliver sat i nederste if block, default værdier er så vi ikke tilgår tomme fields
         molecule[i].bondAmount = 0;
         molecule[i].implicitH = 0;
-        molecule[i].atomChar = input[i];
         molecule[i].illegalValence = 0;
+        molecule[i].bondType = 0;
+        molecule[i].maxBonds = 0;
         molecule[i].atomChar = toupper(input[i]);
+
+
         if (isalpha(input[i])) { //gem indeks til hvert atom, dvs ignorere bond symvoler osv.
+            molecule[i].type = SYMBOL_ATOM;
             atomIndices[currentID] = i;
             currentID++;
             atomCount++;
+            switch (input[i]) {
+                case 'C': molecule[i].maxBonds = '4'; break;
+                case 'O': molecule[i].maxBonds = '2'; break;
+                case 'N': molecule[i].maxBonds = '3'; break;
+            }
         }
+        else if (input[i] == '-' || input[i] == '=' || input[i] == '#') {
+            molecule[i].type = SYMBOL_BOND;
+
+            switch (input[i]) {
+                case '-': molecule[i].bondType = 1; break;
+                case '=': molecule[i].bondType = 2; break;
+                case '#': molecule[i].bondType = 3; break;
+            }
+        }
+        else if (input[i] == '(' ) {
+            molecule[i].type = SYMBOL_BRANCH_OPEN;
+        }
+        else if (input[i] == ')') {
+            molecule[i].type = SYMBOL_BRANCH_CLOSE;
+        }
+
     }
 }
 
@@ -58,23 +85,11 @@ void fillAtoms(int atom_size, int matrix[atom_size][atom_size]) {
     }
 }
 
-// Meget ligetil at beregne implicit atomer, hvis der er flere cases end disse 3 atomer, skal jeg nok tilføje dem
+// Meget ligetil at beregne implicit atomer
 void fill_implicit_hydrogen(int size) {
     for (int i = 0; i < size; i++) {
         int idx = atomIndices[i];// bruger mapping til korrekt atom i SMILES
-        switch (molecule[idx].atomChar) {
-            case 'C':
-                molecule[idx].implicitH = MAX_ALLOWED_C - molecule[idx].bondAmount;
-                break;
-            case 'O':
-                molecule[idx].implicitH = MAX_ALLOWED_O - molecule[idx].bondAmount;
-                break;
-            case 'N':
-                molecule[idx].implicitH = MAX_ALLOWED_N - molecule[idx].bondAmount;
-                break;
-            default:
-                molecule[idx].implicitH = 0;
-        }
+        molecule[idx].implicitH = molecule[idx].maxBonds - molecule[idx].bondAmount;
     }
 }
 
@@ -103,7 +118,7 @@ int valence_check_struct(int size) {
 
 int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]) {
     // Brug globale værdier fra validation.c (smiles_input_size, atom_count osv.)
-    create_atoms(smiles_input_size, input);
+    create_molecule(smiles_input_size, input);
     fillAtoms(atomCount, matrix);
     fill_implicit_hydrogen(atomCount);
 

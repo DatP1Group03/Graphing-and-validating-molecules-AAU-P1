@@ -1,11 +1,23 @@
 #ifndef VALENCE_CHECK_H
 #define VALENCE_CHECK_H
 
+typedef enum {
+    SYMBOL_ATOM,
+    SYMBOL_BOND,
+    SYMBOL_BRANCH_OPEN,
+    SYMBOL_BRANCH_CLOSE,
+
+} SymbolType;
+
 typedef struct {
+    SymbolType type;
+    int bondType;
+    int maxBonds;
     int bondAmount;
     int implicitH;
     char atomChar;
     int  illegalValence;
+
 } Symbol;
 
 extern Symbol *molecule;
