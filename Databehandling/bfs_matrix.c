@@ -4,6 +4,8 @@
 
 #include "bfs_matrix.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
 
 /* The following function is our BFS algorithm. We input the following:
  * int n this is the number of nodes that we are dealing with. This is also why we see
@@ -93,4 +95,82 @@ void print_definition_of_BFS() {
     printf("BFS keeps track of the nodes it still needs to visit in a queue, which ensures that the earliest \n");
     printf("discovered nodes are processed first. \n");
     printf("BFS continues this pattern of moving outward in waves until all reachable nodes have been visited. \n");
+}
+
+static void append_log(char *buf, size_t buf_size, const char *fmt, ...)
+{
+    if (buf_size == 0) return;
+
+    size_t len = strlen(buf);
+    if (len >= buf_size - 1) return;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf + len, buf_size - len, fmt, args);
+    va_end(args);
+}
+
+
+int bfs_matrix_gui(int n, const int adj[n][n], int src,
+                   int bfs[], char *logbuf, size_t logbuf_size) {
+    int visited[n];
+    int queue[n];
+    int front = 0, rear = 0;
+    int count = 0;
+
+    // nulstil log
+    if (logbuf_size > 0) logbuf[0] = '\0';
+
+    for (int i = 0; i < n; i++) visited[i] = 0;
+
+    append_log(logbuf, logbuf_size, "Our start node is %d\n", src);
+    visited[src] = 1;
+    queue[rear++] = src;
+
+    int dont_print_bfs_list_on_first = 1;
+
+    while (front < rear) {
+        int no_comma_on_first = 1;
+
+        if (!dont_print_bfs_list_on_first) {
+            append_log(logbuf, logbuf_size, "} BFS list currently: {");
+            for (int j = 0; j < count; j++) {
+                if (!no_comma_on_first) append_log(logbuf, logbuf_size, ", ");
+                append_log(logbuf, logbuf_size, "%d", bfs[j]);
+                no_comma_on_first = 0;
+            }
+            append_log(logbuf, logbuf_size, "}\n");
+        }
+        dont_print_bfs_list_on_first = 0;
+
+        append_log(logbuf, logbuf_size, "In our queue we currently have the following: {");
+        no_comma_on_first = 1;
+        for (int i = front; i < rear; i++) {
+            if (!no_comma_on_first) append_log(logbuf, logbuf_size, ", ");
+            append_log(logbuf, logbuf_size, "%d", queue[i]);
+            no_comma_on_first = 0;
+        }
+        append_log(logbuf, logbuf_size, "}\n");
+
+        int u = queue[front++];
+        bfs[count++] = u;
+
+        append_log(logbuf, logbuf_size,
+                   "We are visiting node %d and it is connected to unvisited elements: {", u);
+        no_comma_on_first = 1;
+
+        for (int v = 0; v < n; v++) {
+            if (adj[u][v] == 1 && visited[v] == 0) {
+                visited[v] = 1;
+                queue[rear++] = v;
+
+                if (!no_comma_on_first) append_log(logbuf, logbuf_size, ", ");
+                append_log(logbuf, logbuf_size, "%d", v);
+                no_comma_on_first = 0;
+            }
+        }
+        append_log(logbuf, logbuf_size, "}\n");
+    }
+
+    return count;
 }
