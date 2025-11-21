@@ -3,7 +3,11 @@ project(Projekt_kode C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(main main.c)
+add_executable(main main.c
+        "SMILES NODE/SMILESNODE.c"
+        "test for SMILES NODE/test_SMILESNODE.c"
+        "SMILES NODE/SMILESNODE.h"
+        "SMILES NODE/main.c")
 
 add_subdirectory(Databehandling)
 add_subdirectory(Input)
