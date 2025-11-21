@@ -8,3 +8,4 @@
 #endif //PROJEKT_KODE_BFS_MATRIX_H
 
 int bfs_matrix(int n, const int adj[n][n], int src, int bfs[]);
+void print_definition_of_BFS();

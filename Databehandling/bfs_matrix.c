@@ -3,44 +3,94 @@
 //
 
 #include "bfs_matrix.h"
+#include <stdio.h>
 
-/* følgende funktion er vores BFS algoritme. Vi inputter følgende:
- * int n dette er antallet af noder som vi har at gøre med. Det er også derfor vi ser
- * at der skal inputtes et array af størrelse [n][n]. '
- * const int adj[n][n] er vores adjaency matrix som inputtes. den gøres const for at
- * vi ikke kommer til at lave ændringer af den.
- * int src: den node vi gerne vil starte på. Denne kan løbe fra 0 til n-1
- * int bfs[] er vores array som vi inputter i
+/* The following function is our BFS algorithm. We input the following:
+ * int n this is the number of nodes that we are dealing with. This is also why we see
+ * that an array of size [n][n] must be input.
+ * const int adj[n][n] is our adjacency matrix as input. It is made const so that
+ * We are not going to make any changes to it.
+ * int src:the node we want to start at. This can range from 0 to n-1
+ * int bfs[] is our array that we input into
  * */
 int bfs_matrix(int n, const int adj[n][n], int src, int bfs[]) {
-    int visited[n]; //matrice med formel at holde styr på besøgte noder. noden er lig med subscript og angives om besøgt med 0 eller 1.
+    int visited[n]; //matrix for keeping track of visited nodes. The node is equal to subscript and is indicated if visited with 0 or 1.
     for (int i = 0; i < n; i++) {
         visited[i] = 0;
     }
-    int queue[n]; // queue er et array der består af de elementer vi har set men endnu ikke besøgt
+    int queue[n]; // queue is an array consisting of the elements we have seen but not yet visited
     int front = 0, rear = 0; //
-    /* front er hvor mange gange vi har dequeuet et element fra køen. så egentlig hvor langt BFS er kommet i køen
-     * rear flytter sig når vi tilføjer til køen. rear  = antal elementer i kø + front */
+    /* front is how many times we have dequeued an element from the queue. so actually how far BFS has come in the queue
+     * rear moves when we add to the queue. rear = number of elements in queue + front*/
 
-    int count = 0; // tæller hvor mange noder vi har besøgt.
-
+    int count = 0; // counts how many nodes we have visited.
+    printf("Our start node is %d \n", src);
     visited[src] = 1;
-    queue[rear++] = src; // vi sætter queue[back (her 0)] = src, og da vi har tilføjet et element til kø så increments back til 1.
+    queue[rear++] = src; // we set queue[back (here 0)] = src, and since we have added an element to the queue then increments back to 1.
 
+    int dont_print_bfs_list_on_first = 1;
     while ( front < rear ) {
-        int u = queue[front]; // første gang sættes queue[0] lig med u. U skal bruges til bestemme det første element i vores array.
-        front++; // vi incrementer vores front nu med 1, da vi lige har dequet til u.
-        bfs[count] = u; // vores kø element som er i u, er et element i bfs.
-        count++; // vi har tilføjet en node og derfor fremrykkes vores count.
+        // the following is simply for printing the bfs.
+        int no_comma_on_first = 1;
+        if (!dont_print_bfs_list_on_first) {
+            printf("} BFS list currently: {");
+            for (int j = 0; j < count; j++) {
+                if (!no_comma_on_first) {
+                    printf(", ");
+                }
+                printf("%d", bfs[j]);
+                no_comma_on_first = 0;
+            }
+            printf("} ");
+        }
+        dont_print_bfs_list_on_first = 0;
 
+        // and here we print our queue
+        printf("In our queue we currently have the following: {");
+        no_comma_on_first = 1;
+        for (int i = front; i < rear; i++) {
+            if (!no_comma_on_first) {
+                printf(", ");
+            }
+            printf("%d", queue[i]);
+            no_comma_on_first = 0;
+        }
+        printf("} \n");
+
+        int u = queue[front]; // The first time, queue[0] is set equal to u. U will be used to determine the first element in our array.
+        front++; //we now increment our front by 1, since we have just dequeued to u.
+        bfs[count] = u; // our queue element which is in u is an element in bfs.
+        count++; // we have added a node and therefore our count is advanced.
+        printf("We are visiting node %d and it is connected to unvisited elements: {", u);
+        no_comma_on_first = 1;
         for (int v = 0; v < n; v++) {
-            if (adj[u][v] == 1 && visited[v] == 0) { // så her tjekker vi om adj[u][v] har 1 altså om der er forbindelse. og vi tjekker om den allerede er besøgt!
-                visited[v] = 1; // vi sætter den som besøgt!
-                queue[rear++] = v; // og vi tilføjer den til vores queue. som så automatisk også til bfs når while kører forfra. Fordi vi har tilføjet til kø så incrementer vi vores rear.
+            if (adj[u][v] == 1 && visited[v] == 0) { // so here we check if adj[u][v] has 1, i.e. if there is a connection. and we check if it has already been visited!
+                visited[v] = 1; // We'll mark it as visited!
+                queue[rear++] = v; // and we add it to our queue. which then automatically also to bfs when while runs from the front. Because we have added to the queue, we increment our rear.
+
+                if (!no_comma_on_first) {
+                    printf(", ");
+                }
+                    printf("%d", v);
+                    no_comma_on_first = 0;
             }
         }
     }
-    return count; // antal besøgte noder - en hurtig måde at se om besøgt = n, hvis de er så er molekylet helt.
+    return count; // number of visited nodes - a quick way to see if visited = n, if they are then the molecule is complete.
 
 
+}
+
+void print_definition_of_BFS() {
+    printf("BFS starts at a chosen node and visits it. \n");
+    printf("Instead of going deep, BFS looks at all the neighbours of that node first. \n");
+    printf("After visiting those neighbours, it then visits all the neighbours of those neighbours, and so on. \n");
+    printf("You can think of BFS as exploring the graph layer by layer: \n");
+    printf("1. First the start node \n");
+    printf ("2. Then all nodes directly connected to it \n");
+    printf("3. Then all nodes connected to those nodes \n");
+    printf("4. And so on \n");
+    printf("BFS keeps track of the nodes it still needs to visit in a queue, which ensures that the earliest \n");
+    printf("discovered nodes are processed first. \n");
+    printf("BFS continues this pattern of moving outward in waves until all reachable nodes have been visited. \n");
 }
