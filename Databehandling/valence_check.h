@@ -1,18 +1,31 @@
 #ifndef VALENCE_CHECK_H
 #define VALENCE_CHECK_H
 
+typedef enum {
+    SYMBOL_ATOM,
+    SYMBOL_BOND,
+    SYMBOL_BRANCH_OPEN,
+    SYMBOL_BRANCH_CLOSE,
+
+} SymbolType;
+
 typedef struct {
+    SymbolType type;
+    int bondType;
+    int maxBonds;
     int bondAmount;
     int implicitH;
     char atomChar;
-} Atom;
+    int  illegalValence;
 
-extern Atom *atoms;
+} Symbol;
+
+extern Symbol *molecule;
+extern int *atomIndices;
+extern int atomCount;
+
 
 int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]);
-void create_atoms(int smiles_size, const char input[]);
-void fillAtoms(int atom_size, int matrix[atom_size][atom_size]);
-void fill_implicit_hydrogen(int size);
-int valence_check_struct(int size);
+
 
 #endif

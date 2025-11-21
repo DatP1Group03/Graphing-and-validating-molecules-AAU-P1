@@ -1,21 +1,43 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.10)
 project(Projekt_kode C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(main main.c
-        "SMILES NODE/SMILESNODE.c"
-        "test for SMILES NODE/test_SMILESNODE.c"
-        "SMILES NODE/SMILESNODE.h"
-        "SMILES NODE/main.c")
+add_subdirectory(Databehandling)       # bfs_matrix, dfs_matrix, valence_check
+add_subdirectory(Input)                # validation
+add_subdirectory(adjacency_matrix)     # Adjacency_matrix
 
-add_subdirectory(Databehandling)
-add_subdirectory(Input)
+
+set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
+add_subdirectory(${RAYLIB_SRC_DIR})
+
+
+add_executable(main
+        main.c
+)
+
+
+target_include_directories(main PUBLIC
+        ${RAYLIB_SRC_DIR}/src
+        ${CMAKE_SOURCE_DIR}/Input
+        ${CMAKE_SOURCE_DIR}/Databehandling
+        ${CMAKE_SOURCE_DIR}/adjacency_matrix
+)
+# KOble Libraries
+target_link_libraries(main
+        bfs_matrix
+        dfs_matrix
+        validation
+        valenceCheck
+        Adjacency_matrix
+
+        raylib
+        opengl32
+        gdi32
+        winmm
+)
+
+# Test
 include(cmake/mtest.cmake)
-
-add_subdirectory(adjacency_matrix)
-target_link_libraries(main Adjacency_matrix)
-
 enable_testing()
-target_link_libraries(main bfs_matrix dfs_matrix validation valence_check m)
 add_subdirectory(test)

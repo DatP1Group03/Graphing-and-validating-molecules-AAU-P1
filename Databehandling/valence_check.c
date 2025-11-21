@@ -16,32 +16,63 @@ Funktion 4: Tjekker om vi overskrider valency ved at lave en expression til at s
 #define  MAX_ALLOWED_N 3
 #define  MAX_ALLOWED_O 2
 
-Atom *atoms = NULL;
+Symbol *molecule = NULL;
 int *atomIndices = NULL;
 int atomCount = 0; // Holder styr på antal faktiske atomer
 
 // Fyld atom arrayet med ingenting (med mindre jeg får noget fra et andet sted, så skal jeg nok assign det til det)
-void create_atoms(int smiles_size, const char input[]) {
+void create_molecule(int smiles_size, const char input[]) {
+
     int currentID = 0;
     atomCount = 0;
 
-    atoms = malloc(sizeof(Atom) * smiles_size);
+    molecule = malloc(sizeof(Symbol) * smiles_size);
     atomIndices = malloc(sizeof(int) * smiles_size);
 
     for (int i = 0; i < smiles_size; i++) {
-        atoms[i].bondAmount = 0;
-        atoms[i].implicitH = 0;
-        atoms[i].atomChar = input[i];
+
+        //Default Værdier her, Type bliver sat i nederste if block, default værdier er så vi ikke tilgår tomme fields
+        molecule[i].bondAmount = 0;
+        molecule[i].implicitH = 0;
+        molecule[i].illegalValence = 0;
+        molecule[i].bondType = 0;
+        molecule[i].maxBonds = 0;
+        molecule[i].atomChar = toupper(input[i]);
+
+
         if (isalpha(input[i])) { //gem indeks til hvert atom, dvs ignorere bond symvoler osv.
+            molecule[i].type = SYMBOL_ATOM;
             atomIndices[currentID] = i;
             currentID++;
             atomCount++;
+            switch (input[i]) {
+                case 'C': molecule[i].maxBonds = '4'; break;
+                case 'O': molecule[i].maxBonds = '2'; break;
+                case 'N': molecule[i].maxBonds = '3'; break;
+            }
         }
+        else if (input[i] == '-' || input[i] == '=' || input[i] == '#') {
+            molecule[i].type = SYMBOL_BOND;
+
+            switch (input[i]) {
+                case '-': molecule[i].bondType = 1; break;
+                case '=': molecule[i].bondType = 2; break;
+                case '#': molecule[i].bondType = 3; break;
+            }
+        }
+        else if (input[i] == '(' ) {
+            molecule[i].type = SYMBOL_BRANCH_OPEN;
+        }
+        else if (input[i] == ')') {
+            molecule[i].type = SYMBOL_BRANCH_CLOSE;
+        }
+
     }
 }
 
 //Hvis rækkens værdi !=0 tilføjes værdien altså til addBonds, som i slutning bliver sat til atom[0].bondAmount
 void fillAtoms(int atom_size, int matrix[atom_size][atom_size]) {
+    printf("Atom Count %d \n Smiles Count %d",atomCount,smiles_size);
     for (int i = 0; i < atomCount; i++) {
         int addBonds = 0;
         for (int j = 0; j < atomCount; j++) {
@@ -50,52 +81,44 @@ void fillAtoms(int atom_size, int matrix[atom_size][atom_size]) {
             }
         }
         int idx = atomIndices[i];
-        atoms[idx].bondAmount = addBonds;
+        molecule[idx].bondAmount = addBonds;
     }
 }
 
-// Meget ligetil at beregne implicit atomer, hvis der er flere cases end disse 3 atomer, skal jeg nok tilføje dem
+// Meget ligetil at beregne implicit atomer
 void fill_implicit_hydrogen(int size) {
     for (int i = 0; i < size; i++) {
         int idx = atomIndices[i];// bruger mapping til korrekt atom i SMILES
-        switch (atoms[idx].atomChar) {
-            case 'C':
-                atoms[idx].implicitH = MAX_ALLOWED_C - atoms[idx].bondAmount;
-                break;
-            case 'O':
-                atoms[idx].implicitH = MAX_ALLOWED_O - atoms[idx].bondAmount;
-                break;
-            case 'N':
-                atoms[idx].implicitH = MAX_ALLOWED_N - atoms[idx].bondAmount;
-                break;
-            default:
-                atoms[idx].implicitH = 0;
-        }
+        molecule[idx].implicitH = molecule[idx].maxBonds - molecule[idx].bondAmount;
     }
 }
 
 int valence_check_struct(int size) {
+    int valid = 1;
+
     for (int i = 0; i < size; i++) {
-        int idx = atomIndices[i];// tjekker kun faktiske atomer
-        if (atoms[idx].atomChar == 'C' && atoms[idx].bondAmount > MAX_ALLOWED_C) {
-            printf("Valence error, carbon at position %d violates valency rules\n", i+1);
-            return 0;
+        int idx = atomIndices[i];
+
+        if (molecule[idx].atomChar == 'C' && molecule[idx].bondAmount > MAX_ALLOWED_C) {
+            molecule[idx].illegalValence = 1;
+            valid = 0;
         }
-        if (atoms[idx].atomChar == 'O' && atoms[idx].bondAmount > MAX_ALLOWED_O) {
-            printf("Valence error, oxygen at position %d violates valency rules\n", i+1);
-            return 0;
+        if (molecule[idx].atomChar == 'O' && molecule[idx].bondAmount > MAX_ALLOWED_O) {
+            molecule[idx].illegalValence = 1;
+            valid = 0;
         }
-        if (atoms[idx].atomChar == 'N' && atoms[idx].bondAmount > MAX_ALLOWED_N) {
-            printf("Valence error, nitrogen at position %d violates valency rules \n", i+1);
-            return 0;
+        if (molecule[idx].atomChar == 'N' && molecule[idx].bondAmount > MAX_ALLOWED_N) {
+            molecule[idx].illegalValence = 1;
+            valid = 0;
         }
     }
-    return 1;
+
+    return valid;
 }
 
 int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]) {
     // Brug globale værdier fra validation.c (smiles_input_size, atom_count osv.)
-    create_atoms(smiles_input_size, input);
+    create_molecule(smiles_input_size, input);
     fillAtoms(atomCount, matrix);
     fill_implicit_hydrogen(atomCount);
 
@@ -103,7 +126,7 @@ int run_valence_check(int atom_size, const char input[], int matrix[atom_size][a
     for (int i = 0; i < atomCount; i++) {
         int idx = atomIndices[i];
         printf("Atom %d (%c): bonds=%d, implicitH=%d\n",
-               i, atoms[idx].atomChar, atoms[idx].bondAmount, atoms[idx].implicitH);
+               i, molecule[idx].atomChar, molecule[idx].bondAmount, molecule[idx].implicitH);
     }
 
     int valid = valence_check_struct(atomCount);
@@ -113,10 +136,8 @@ int run_valence_check(int atom_size, const char input[], int matrix[atom_size][a
     else
         printf("\nMolecule invalid: Valency check failed\n");
 
-    free(atoms); // Skal det bruges efter dette modul? hvis ja så fjern koden
-    free(atomIndices);
-    atoms = NULL;
-    atomIndices = NULL;
+
+
 
     return valid;
 }
