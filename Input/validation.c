@@ -28,7 +28,7 @@ int smiles_size = 0;
 int atom_count = 0;
 
 char smiles_symbols[] = { // GYLDIGE SMILES KARAKTER
-    'C', 'N', 'O', 'S',
+    'C', 'N', 'O', 'S','H',
     'c', 'n', 'o', 's', 'p',
     '-', '=', '#', ':', '/', '\\',
     '(', ')','[',']',
@@ -37,7 +37,7 @@ char smiles_symbols[] = { // GYLDIGE SMILES KARAKTER
 };
 
 int smiles_count = sizeof(smiles_symbols) / sizeof(smiles_symbols[0]);
-int smiles_input_size = 0;
+    int smiles_input_size = 0;
 
 void add_error(const char *msg, int pos) {
     if (error_count < MAX_ERRORS) { // hvis mindre end max tilladte errors
@@ -190,6 +190,7 @@ void print_errors(void) {
     }
 }
 
+
 int validate_smiles(const char *input) {
 
     // kør alle vores tjeks, og sæt error_count til 0 igen, fordi main() bare kører den igen.
@@ -200,12 +201,27 @@ int validate_smiles(const char *input) {
     closed_brackets(input);
     ring_closed(input);
     misc_check(input);
-
     if (error_count > 0) {
         print_errors();
         return 0;
     }
+
     return 1;
+}
+int get_error_count(void) {
+    return error_count;
+}
+
+const char* get_error_message(int index) {
+    if (index >= 0 && index < error_count)
+        return errors[index].message;
+    return "";
+}
+
+int get_error_position(int index) {
+    if (index >= 0 && index < error_count)
+        return errors[index].position;
+    return -1;
 }
 
 
