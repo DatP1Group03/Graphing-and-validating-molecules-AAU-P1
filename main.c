@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include "bfs_matrix.h"
+#include "Input/validation.h"
+#include "valence_check.h"
+
+#define MaxInput 256
+
 
 int main(void) {
     int n = 5;
