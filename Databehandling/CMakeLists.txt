@@ -1,5 +1,6 @@
 add_library(bfs_matrix bfs_matrix.c)
-add_library(dfs_matrix dfs_matrix.c valence_check valence_check.c)
-target_link_libraries(bfs_matrix PUBLIC valence_check m)
+add_library(dfs_matrix dfs_matrix.c)
+target_link_libraries(bfs_matrix PUBLIC valenceCheck m)
 target_include_directories(bfs_matrix PUBLIC .)
 target_include_directories(dfs_matrix PUBLIC .)
+add_library(valenceCheck valence_check.c)

@@ -13,7 +13,6 @@
 
 #define MaxInput 256
 #define TAB  17
-#define MaxInput 100
 #define TAB_BASE_COLOR_NORMAL   14
 #define TAB_BASE_COLOR_FOCUSED 17
 #define TAB_TEXT_COLOR_NORMAL   15
