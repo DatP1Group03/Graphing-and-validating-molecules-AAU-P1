@@ -96,13 +96,13 @@ void print_definition_of_BFS() {
     printf("discovered nodes are processed first. \n");
     printf("BFS continues this pattern of moving outward in waves until all reachable nodes have been visited. \n");
 }
-
+/*Følgende funktion har et formål og det at bygge bufferen op uden at risikere buffer overflow */
 static void append_log(char *buf, size_t buf_size, const char *fmt, ...)
 {
-    if (buf_size == 0) return;
+    if (buf_size == 0) return; // hvis bufferen er på 0 bytes, giver det ingen mening at skrive noget, vi returner blot.
 
-    size_t len = strlen(buf);
-    if (len >= buf_size - 1) return;
+    size_t len = strlen(buf); // vi deklarer en unsigned int variable ved navn len som er længden af vores buffer.
+    if (len >= buf_size - 1) return; // hvis der ikke er plads tilbage så afbryder vi - vi skal have plads til mindst 1 tegn + '\0'
 
     va_list args;
     va_start(args, fmt);

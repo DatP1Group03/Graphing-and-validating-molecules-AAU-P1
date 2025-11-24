@@ -9,6 +9,7 @@
 #include "raylib.h"
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
+#include "Adjacency_matrix.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -200,63 +201,92 @@ int main(void)
     };
     int tabCount = sizeof(tabs) / sizeof(tabs[0]); // finder hvor mange elementer vi har i vores char tabs array.
 
-    uiFont = LoadFontEx("rec/georgia.ttf", 30, NULL, 0);
-    GuiSetFont(uiFont);
+    uiFont = LoadFontEx("rec/georgia.ttf", 30, NULL, 0); // loader fonten georgia.ttf med størrelse 30 px. NULL,0 betyder at reaylib selv genere glyphs for standard ASCII.
+    GuiSetFont(uiFont); // istedet for standard font så er det georgia der skal bruges.
 
     // Set these once (global UI styles)
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 15);
-    GuiSetStyle(DEFAULT, BORDER_WIDTH, 1);
-    GuiSetStyle(DEFAULT, LINE_COLOR, 0x555555ff);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 15); // Sætter tekststørrelsen for alle widgets til 15 px.
+    GuiSetStyle(DEFAULT, BORDER_WIDTH, 1); // Alle widgets får en kant/border på 1 pixel.
+    GuiSetStyle(DEFAULT, LINE_COLOR, 0x555555ff); // Definerer farven på kanter/linjer i GUI’en.  0x555555ff = mørk grå (hex: R=55, G=55, B=55, A=FF)
 
-    GuiSetStyle(TAB, TEXT_PADDING, 8);
-    GuiSetStyle(TAB, BORDER_WIDTH, 1);
-    GuiSetStyle(TAB, BASE_COLOR_NORMAL, 0xE8E8E8FF);
-    GuiSetStyle(TAB, BASE_COLOR_FOCUSED, 0xC0FAC0FF);
-    GuiSetStyle(TAB, TEXT_COLOR_FOCUSED, 0x006600FF);
-
-
-
+    /* Style for TAB-widget specifikt */
+    GuiSetStyle(TAB, TEXT_PADDING, 8); // Indre padding i fanerne (afstand mellem tab-kant og teksten) = 8 px.
+    GuiSetStyle(TAB, BORDER_WIDTH, 1); // Tab-elementerne får en 1 px border (kan være forskellig fra default).
+    GuiSetStyle(TAB, BASE_COLOR_NORMAL, 0xE8E8E8FF); // Når en tab ikke er valgt, er dens baggrundsfarve  0xE8E8E8FF = lys grå (normal state).
+    GuiSetStyle(TAB, BASE_COLOR_FOCUSED, 0xC0FAC0FF); // Når en tab er valgt/hover, bruges 0xC0FAC0FF = lys grøn.
+    GuiSetStyle(TAB, TEXT_COLOR_FOCUSED, 0x006600FF); // Tekstfarven i den aktive faneblad bliver mørk grøn #006600.
 
 
-    while (!WindowShouldClose())
+
+
+
+    while (!WindowShouldClose()) // Hoved-loop: kører indtil brugeren lukker vinduet (ESC, kryds, osv.)
     {
-        BeginDrawing();
-        ClearBackground((Color){ 255, 250, 250 });
+        BeginDrawing();  // Starter en ny frame – alt tegning mellem BeginDrawing/EndDrawing
+        ClearBackground((Color){ 255, 250, 250 }); // Sætter baggrundsfarven (meget lys rosa/hvid)
+
+        // Gemmer de nuværende styles for BUTTON, så vi kan restore dem senere
         int oldBaseNormal = GuiGetStyle(BUTTON, BASE_COLOR_NORMAL);
         int oldBaseFocused = GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED);
         int oldTextNormal = GuiGetStyle(BUTTON, TEXT_COLOR_NORMAL);
 
-        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, 0xCC4444FF);
-        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, 0xDD6666FF);
-        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF);
+        // Midlertidig style til "CLEAR"-knappen (rød med hvid tekst)
+        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, 0xCC4444FF);   // Normal baggrundsfarve: mørk rød
+        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, 0xDD6666FF);  // Når hover/focus: lidt lysere rød
+        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
 
+        // Definerer rektanglet (position og størrelse) for CLEAR-knappen
         Rectangle clearTab = {740, 20, 140, 30};
+        /* rectangle er en struct i raylib som ser ud på følgende:
+        * typedef struct Rectangle {
+        float x;
+        float y;
+        float width;
+        float height;
+        } Rectangle;
+        hvor felterne er: x: horisontal position (pixel fra venstre)
+        y vertikal position (pixel fra toppen)
+        width (bredde i pixel)
+        height - højde i pixel) */
+
+        // Tegner en knap med teksten "CLEAR". Hvis den klikkes, kaldes Clear()
         if (GuiButton(clearTab, "CLEAR")) {
             Clear();
         }
-        //Shortcut til Clear
+        /* syntax er bool GuiButton(Rectangle bounds, const char *text);
+        Den gør to ting i én funktion:
+        1. Tegner knappen på skærmen med den givne tekst
+        2. Returnerer true i dén frame hvor knappen blev klikket
+        så når brugeren har klikket så er sætnigen true og så kører vi clear().
+        Clear er vores egen funktion og er egentlig blot en funktion som sætter alle vores variable i programmet tilbage fra start (ingen matrix osv).
+        */
+        // Keyboard-genvej: CTRL + Z gør det samme som at trykke CLEAR
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
             Clear();
         }
-
+        // Restore de gamle styles, så andre knapper ikke arver den røde stil
         GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, oldBaseNormal);
         GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, oldBaseFocused);
         GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, oldTextNormal);
+        // TAB-styles: vi styler fanebladene i tabbaren
 
+        // Sæt standard baggrundsfarve for tab (ikke valgt) til grå
         GuiSetStyle(TAB + 0, TAB_BASE_COLOR_NORMAL, 0xCCCCCCFF); // default gray
-
+        // (TAB + 0 bruges fordi raygui bruger “controls + state” som indeksering – TAB er basis)
+        // Hvis input er gyldigt, gør vi tab'en grøn når den er aktiv/focused
         if (inputValid)
         {
             GuiSetStyle(TAB + 0, TAB_BASE_COLOR_FOCUSED, 0x4CAF50FF);
         }
 
+        // Tegner selve tab-baren (faneblade)
         GuiTabBar(
             (Rectangle){20, 20, 860, 30},
             tabs,
             tabCount,
             &activeTab
         );
-
+        // Alt efter hvilken tab der er aktiv, kalder vi en “draw”-funktion for den side
         switch (activeTab)
         {
             case 0: DrawTab_InputValidation(); break;
@@ -266,36 +296,56 @@ int main(void)
             case 4: DrawTab_GraphView(); break;
         }
 
-        EndDrawing();
+        EndDrawing(); // Afslutter framen og viser den på skærmen
     }
 
-    CloseWindow();
+    CloseWindow(); // Rydder raylib op og lukker vinduet
     return 0;
 }
 
 void DrawTab_InputValidation()
 {
-
+    // Overskrift til tabben
     DrawTextEx(uiFont,"Input Validation Tab", (Vector2){30,80},30,2, BLACK);
-
+    /* vector2 er en struct med to floats i raylib, som bruges til at angive 2d-posiitioner i raylib er der defineret:
+    typedef struct Vector2 {
+    float x;
+    float y;
+} Vector2;
+*/
+    // Label foran tekstfeltet
     GuiLabel((Rectangle){30, 130, 120, 25}, "SMILES Input:");
 
-
+    // Tekstboks til SMILES-input
     if (GuiTextBox((Rectangle){160, 130, 300, 25}, smilesInput, 256, editMode))
         editMode = !editMode;
+    /*
+      GuiTextBox:
+      - Tegner tekstfeltet
+      - Skriver brugerens input ind i `smilesInput`
+      - Returnerer true, når brugeren "afslutter" editing (Enter/tab/click)
+      - Her: når den returnerer true, toggler du editMode, altså guitextbox() bliver true i den frame hvor brugeren afslutter
+      tekstredigeringen ved at enten gør følgende: tab, enter eller klikke udenfor tekstfeltet.
+    */
 
-    // Validate button
+    // Validate-knap
     if (GuiButton((Rectangle){470, 130, 100, 25}, "Validate"))
     {
         moleculeValidated = true;
-        inputValid = validate_smiles(smilesInput);
-        TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
+        inputValid = validate_smiles(smilesInput); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
+        TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
     }
+    /*
+      Når brugeren klikker "Validate":
+      - Sætter moleculeValidated = true → nu må vi vise resultatet
+      - Kalder validate_smiles(...) → sætter inputValid til true/false
+    */
 
-
+    // Hvis der ER forsøgt valideret
     if (moleculeValidated) {
 
         if (inputValid ) {
+            // GRØN succes-tekst + liste over checks der er OK
             DrawTextEx(uiFont, "Valid SMILES", (Vector2){30, 180}, 30, 0, goodGreen);
 
             DrawTextEx(uiFont, "INPUT SIZE DOES NOT EXCEED MAX_INPUT OF 100", (Vector2){30, 230}, 15, 0, goodGreen);
@@ -304,9 +354,13 @@ void DrawTab_InputValidation()
             DrawTextEx(uiFont, "NO UNCLOSED RINGS", (Vector2){30, 290}, 15, 0, goodGreen);
         }
         else {
+            // RØD fejl-overskrift
             DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
-            int count = get_error_count();
+
+            int count = get_error_count();  // (du bruger faktisk ikke 'count' her) - SKAL DET FJERNES?
+
             if (!inputValid) {
+                // Du tegner "INVALID SMILES:" én gang til her (det er lidt dobbelt)
                 DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
 
                 int y = 220;
@@ -325,14 +379,79 @@ void DrawTab_InputValidation()
         }
     }
     else {
+        // Før man har trykket validate:
         DrawTextEx(uiFont, "SMILES INPUT REQUIRED", (Vector2){30, 180}, 20, 2, BLACK);
     }
-
 }
+
 
 void DrawTab_AdjacencyMatrix()
 {
+    // Overskrift til tabben
     DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
+
+    // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
+    if (!inputValid) {
+        DrawTextEx(uiFont,
+            "Please enter and validate a valid SMILES in the Input tab first.",
+            (Vector2){30,130}, 18,2, RED);
+        return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+    }
+
+    // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
+    int atom_count = get_atom_count(smilesInput);
+    // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
+    int adjacency_matrix[atom_count][atom_count];
+
+    create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
+
+    // nu har vi egentlig matrixen så nu skal vi egentlig "blot" have tegnet den som en tabel. men dette gøres egentlig som vi ville have gjort som et printf i terminalen
+    int startX = 80; // hvor vi ønsker tabllen starter i x
+    int startY = 170;
+    int cell_size = 30; // størrelsen på hver "celle" hvis man så det ligesom et excelark
+
+    // jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
+    for (int col = 0; col < atom_count; col++) {
+        DrawText(TextFormat("%d", col), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
+            startX + (col +1)*cell_size, startY, 18, BLACK);
+
+        // vi vil også gerne have en linje lige under.  der kan anvendes DrawLineEx (som anvender vector, men vi kan her vælge tykkelse derfor vælges denne).
+        // de ekstra +20 jeg har sat på et grundet fontsize er 18 så vi skal forbi talenne.
+        DrawLineEx((Vector2){startX, startY+20}, (Vector2){startX +20+ (col +1)*cell_size, startY+20},2, BLACK);
+    }
+
+    // Række-overskrifter
+    for (int row = 0; row < atom_count; row++) {
+        // Række-label
+        DrawText(TextFormat("%d", row),
+                 startX,
+                 startY + (row + 1) * cell_size,
+                 18,
+                 BLACK);
+
+        //linje for at adskille række label fremfor selve matrixen
+        DrawLineEx((Vector2){startX+20, startY+20}, (Vector2){startX+20, startY+20 + (row + 1) * cell_size},2, BLACK);
+
+
+        // Celler i rækken
+        for (int col = 0; col < atom_count; col++) {
+            int value = adjacency_matrix[row][col];
+
+            DrawText(TextFormat("%d", value),
+                        startX + (col + 1) * cell_size,
+                        startY + (row + 1) * cell_size,
+                        18,
+                        BLACK);
+        }
+    }
+
+    // lille forklarende tekst der forklarer atom count og hvilket input vi ser for:
+    DrawTextEx(uiFont,
+               TextFormat("Atoms: %d   SMILES: %s", atom_count, smilesInput),
+               (Vector2){30, startY + (atom_count + 2) * cell_size},
+               18,
+               2,
+               DARKGRAY);
 
 }
 
@@ -404,18 +523,22 @@ void DrawTab_StabilityCheck()
 
 void DrawTab_AlgorithmVisualization()
 {
+    //tegner blot titlen
     DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
 
+    // det er også et krav her at der et gyldigt input. den returner altså man kan ikke trykke på noget her.
     if (!inputValid) {
         DrawText("Please enter a valid SMILES on the first tab.", 30, 130, 20, RED);
         return;
     }
 
     // Knap til at starte BFS
+    // har lavet en variabel der hedder bfsRan (defineret på linje 118) den gør at teksten afhænger om man har kørt BFS eller ikke. Hvis true så står der run BFS again, hvis false (standard) så står der blot BFS run.
     if (GuiButton((Rectangle){30, 130, 160, 30}, bfsRan ? "Run BFS again" : "Run BFS")) {
 
+        // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
         int atom_count = get_atom_count(smilesInput);
-        if (atom_count <= 0) {
+        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
             bfsLog[0] = '\0';
             bfsCount = 0;
             bfsRan = false;
@@ -428,10 +551,10 @@ void DrawTab_AlgorithmVisualization()
         create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
 
         // Kør BFS fra node 0 (eller anden startnode hvis du vil)
-        bfsLog[0] = '\0';
+        bfsLog[0] = '\0'; // nulstiller bfsLog så vi har en tom streng at gøre med.
         bfsCount = bfs_matrix_gui(atom_count, adjacency_matrix, 0,
-                                  bfsOrder, bfsLog, sizeof(bfsLog));
-        bfsRan = true;
+                                  bfsOrder, bfsLog, sizeof(bfsLog)); // vi kalder bfs_matrix gui se library for kommentarer
+        bfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
     }
 
     if (!bfsRan) {
@@ -440,43 +563,44 @@ void DrawTab_AlgorithmVisualization()
     }
 
     // Vis BFS rækkefølge
-    DrawText("BFS traversal order:", 30, 190, 20, BLACK);
-
+    DrawText("BFS traversal order:", 30, 190, 20, BLACK); //skriver overskriften
+    // vi ønsker at få bfs listen men med -> for hver gang vi har et tal denne bygges herunder
     char orderLine[256] = "Order: ";
-    char tmp[32];
+    char tmp[32]; // vi laver først en temporary streng som vi bagefter sammenfletter med resten af den samlede streng. , så behøver vikke holde styr på index
     for (int i = 0; i < bfsCount; i++) {
-        snprintf(tmp, sizeof(tmp), "%s%d",
+        snprintf(tmp, sizeof(tmp), "%s%d", // vi laver en streng, hvis i == 0 så skal vi have mellemrum og hvis ikke skal vi have -> i starten af vores streng. snprintf laver en strengm og vi får her tallet med.
                  (i == 0 ? "" : " -> "), bfsOrder[i]);
-        strncat(orderLine, tmp, sizeof(orderLine) - strlen(orderLine) - 1);
+        strncat(orderLine, tmp, sizeof(orderLine) - strlen(orderLine) - 1); // vi sammenfletter orderLine og tmp for hver gang.
+        // bufferens totale størrelse (256), strlen(orderline - hvor er brugt, vi skriver -1 da strncat altid tilføjer \0 så vi skal sikre at buffer ikke bliver null-termineret.
     }
-    DrawText(orderLine, 30, 220, 20, BLACK);
+    DrawText(orderLine, 30, 220, 20, BLACK); // vi skriver den samlet streng.
 
+    // så vi har lavet en log og den skal vi nu igennem
     // Vis loggen fra bfs_matrix_gui linje for linje
-    int x = 30;
+    int x = 30; // hvor vi starter hende
     int y = 260;
     int lineHeight = 18;
 
-    const char *p = bfsLog;
-    while (*p && y < GetScreenHeight() - 20) {
+    const char *p = bfsLog; // vi vil gå igennem vha. en pointer, således rykker vi ikke på bfslog placering.
+    while (*p && y < GetScreenHeight() - 20) { // mens pointeren ikke endnu er '\0' og vi stadig har plads på skærmen. så skal vi stadig tegne.
         // find slut på linje
-        const char *lineStart = p;
-        const char *newline = strchr(p, '\n');
-        int len = 0;
-        if (newline) {
-            len = (int)(newline - lineStart);
-            p = newline + 1;
-        } else {
+        const char *lineStart = p; // vi laver en ny pointer her til hvor vi starter på en linje
+        const char *newline = strchr(p, '\n'); // en pointer der peger på slutningen af den linje vi har i linestart - husk strchr returnerr en pointer til den første occurrence af karakteren
+        int len = 0; // hvad er længden på linjen?
+        if (newline) { //altså hvis vi har en linje overhovedet
+            len = (int)(newline - lineStart); // så er længden lig med slut - start
+            p = newline + 1; // næste linje som vi skal tage næste gang
+        } else { // hvis ikke vi har et slut så er længden lig med start
             len = (int)strlen(lineStart);
-            p += len;
+            p += len; // vi rykker vores pointer frem med længden så vi kan indlæse ny linje næste gang.
         }
-
+        // vi opretter en buffer, denne skal vi bruge til at skrive kun vores enkelte linje
         char lineBuf[256];
-        if (len >= (int)sizeof(lineBuf)) len = sizeof(lineBuf) - 1;
-        memcpy(lineBuf, lineStart, len);
-        lineBuf[len] = '\0';
+        snprintf(lineBuf, sizeof(lineBuf), "%.*s", len, lineStart); // vi får strengen fra linestart, således vi kan output den. Den gemmes i linebuf.
 
-        DrawText(lineBuf, x, y, 16, DARKGRAY);
-        y += lineHeight;
+
+        DrawText(lineBuf, x, y, 16, DARKGRAY); // vi skriver teksten
+        y += lineHeight; // vi rykker linjehøjden en takt ned.
     }
 }
 
