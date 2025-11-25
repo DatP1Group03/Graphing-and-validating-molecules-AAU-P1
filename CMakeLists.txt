@@ -15,6 +15,7 @@ target_link_libraries(SMILES_NODE PRIVATE validation)
 
 add_executable(main
         "SMILES NODE/main.c"
+        "test for SMILES NODE/test_SMILESNODE.c"
 )
 
 
