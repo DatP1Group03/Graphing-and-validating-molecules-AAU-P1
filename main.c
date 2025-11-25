@@ -546,7 +546,7 @@ void DrawTab_AlgorithmVisualization() {
 
 
     if (!bfsRan && !dfsRan ) {
-        DrawText("Press 'Run BFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
+        DrawText("Press 'Run BFS' or 'Run DFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
         return;
     }
 
@@ -586,6 +586,11 @@ void DrawTab_AlgorithmVisualization() {
         int dfsmatrix[atom_count];
         int visited[atom_count];
         int parent[atom_count];
+
+        for (int i = 0; i < atom_count; i++) {
+            parent[i] = -1;
+        }
+
         int lineheight = 0;
         dfs_matrix_onlyforgui(0, atom_count, adjacency_matrix, dfsmatrix, visited, parent, 0, &lineheight);
     }
@@ -621,6 +626,7 @@ void Clear() {
     molecule = NULL;
 
     bfsRan = false;
+    dfsRan = false;
     bfsCount = 0;
     bfsLog[0] = '\0';
 }

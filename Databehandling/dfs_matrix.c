@@ -157,7 +157,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
             *pLineHeight += 20;
 
             parent[i] = startnode;
-            count = dfs_matrix(i, n, adj, dfsmatrix, visited, parent, count);
+            count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, count, pLineHeight);
         }
         /* we can check here if there is a cycle! We can do this because we know that if we traverse the neighbors of a node,
          * and we find a neighbor who has already been visited, and that this is not our "parents", i.e. where we came from, then we have a
