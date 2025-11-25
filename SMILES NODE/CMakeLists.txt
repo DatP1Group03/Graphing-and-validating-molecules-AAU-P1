@@ -1,13 +1,15 @@
-cmake_minimum_required(VERSION 4.0)
-project(Projekt_kode C)
+cmake_minimum_required(VERSION 3.20)
+project(P1 C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable("SMILES NODE/SMILESNODE.c")
-
+add_subdirectory(Input)
+add_subdirectory("SMILES NODE")
 add_subdirectory(Databehandling)
-include(cmake/mtest.cmake)
 
-enable_testing()
-target_link_libraries(SMILES NODE/SMILESNODE.c)
-add_subdirectory(test)
+add_executable(main
+        main.c
+)
+
+target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/Input)
+target_link_libraries(main PRIVATE SMILES_NODE validation bfs_matrix m)
