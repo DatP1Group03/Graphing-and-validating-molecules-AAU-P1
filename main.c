@@ -11,6 +11,7 @@
 #include "raygui.h"
 
 
+
 #define MaxInput 256
 #define TAB  17
 #define TAB_BASE_COLOR_NORMAL   14
@@ -28,7 +29,31 @@ static bool answered = false;
 static bool val_flag = false;
 static bool end_flag = false;
 static bool moleculeLoaded = false;
+static bool print = false;
 static bool moleculeValidated= false;
+static bool hasLoadedErrrorArray = false;
+
+static bool showH = false;
+static bool showLabel = false;
+static bool showAtom = false;
+static bool showMass = false;
+static bool inBranch = false;
+
+static bool evenBranch = false;
+static bool oddBranch = false;
+
+
+
+int *errorPos = NULL;
+int edgeThickness = 1;
+int graphX = 350;
+int graphY = 150;
+int branchIndex = 0;
+int chainBeganX = 0;
+int chainBeganY = 0;
+
+
+char errorMessage[256]; // Til valence.
 Font uiFont;
 
 // Tab functions
@@ -43,6 +68,15 @@ void Clear();
 
 int main(void)
 {
+
+    int adj[6][6]; // Initalisere 2d array med countAtoms(smiles) som dimensioner
+    create_adjacency_matrix("CC(OO)CC",6,adj); // Convert til adj
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            printf("%d ", adj[i][j]);
+        }
+        printf("\n");
+    }
 
     InitWindow(900, 600, "S-SMILES");
     SetTargetFPS(60);
@@ -147,6 +181,21 @@ void DrawTab_InputValidation()
     {
         moleculeValidated = true;
         inputValid = validate_smiles(smilesInput);
+
+        val_flag = false;
+        moleculeLoaded = false;
+
+
+        if (errorPos != NULL) {
+            free(errorPos);
+            errorPos = NULL;
+        }
+
+        if (inputValid) {
+            int count = count_atoms(smilesInput);
+            errorPos = malloc(sizeof(int) * count);
+        }
+
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
     }
 
@@ -196,20 +245,20 @@ void DrawTab_AdjacencyMatrix()
 
 void DrawTab_StabilityCheck()
 {
+
+    char errorContainer [256];
     DrawTextEx(uiFont,"Stability Check Tab", (Vector2){30, 80,}, 30,2, BLACK);
     int y = 250;
     int x = 100;
+    int m = 0;
     int radius =30;
     int dist_to_increment = 3*radius;
 
-    //test matrix
-    int adj[3][3] = {
-        {0, 2, 0},
-        {2, 0, 2},
-        {0, 2, 0}
-    };
+    //
 
-    // skal kun køre en gang, derfor sentinel TEST "C=O=C
+    int adj[count_atoms(smilesInput)][count_atoms(smilesInput)]; // Initalisere 2d array med countAtoms(smiles) som dimensioner
+    create_adjacency_matrix(smilesInput,count_atoms(smilesInput),adj); // Convert til adj
+
     if (!val_flag && inputValid && !moleculeLoaded) {
         run_valence_check(count_atoms(smilesInput), smilesInput,adj);
         val_flag = true;
@@ -217,6 +266,7 @@ void DrawTab_StabilityCheck()
     }
         if (moleculeLoaded && molecule != NULL && inputValid) {
            for (int i = 0; i < smiles_input_size; i++) {
+               bool increment = false;
             Color atomColor = BLACK;
 
             if (isalpha(molecule[i].atomChar)){
@@ -226,6 +276,7 @@ void DrawTab_StabilityCheck()
                 if (current == 'S') atomColor = YELLOW;
                 if (current == 'P') atomColor = ORANGE;
                 if (current == 'H') atomColor = WHITE;
+
                 DrawCircleLines(x, y, radius, atomColor); // tegn cirkel, x += i slutningen af loopet for at rykke cirkel
                 DrawTextEx(uiFont, TextFormat("%c", molecule[i].atomChar),
                 (Vector2){x - 4, y - 12}, 15, 2, BLACK); // atom karakter under
@@ -234,6 +285,8 @@ void DrawTab_StabilityCheck()
                 x, y + 40, 10, BLACK);
                 if (molecule[i].illegalValence == 1) {
                     DrawTextEx(uiFont,"ERROR", (Vector2){x-15, y+80,}, 15,2, softRed);
+                    errorPos[m] = i+1;
+                    m++;
                 }
                 else {
                     DrawTextEx(uiFont,"VALID", (Vector2){x-15, y+80,}, 15,2, DARKGREEN);
@@ -256,9 +309,20 @@ void DrawTab_StabilityCheck()
            }
         }
 
+    if (getValence() >= 1) {
+
+
+        int x = 100;
+        int y = 400;
+        for (int i = 0; i < getValence(); i++) {
+            snprintf(errorContainer, sizeof(errorContainer), "%s (position %d)", "UNSTABLE ATOM AT", errorPos[i-1]);
+            DrawTextEx(uiFont, errorContainer, (Vector2){x, y}, 20, 2, RED);
+            y += 40;
+        }
+
+    }
 
 }
-
 
 void DrawTab_AlgorithmVisualization()
 {
@@ -271,32 +335,67 @@ void DrawTab_AlgorithmVisualization()
 
 }
 
-void DrawTab_GraphView()
-{
-    DrawText("Graph View Tab", 30, 80, 25, BLACK);
+void DrawTab_GraphView() {
 
-    //Skal laves senere
+        //Knapper, de må godt fjernes hvis du ikke bruger dem JOnui. Ideen er at du plotter noderne ved en x værdi du assigner til graphX og det samme med graphY
+        // og så kan brugeren måske anvende det til at justere grafens placering.
+        int sidebarY = 600 - 20 - 25;
+        int btnW = 180;
+        int btnH = 25;
+        int pad  = 10;
 
-}
+        int x_pos = 20;
+        int sideW = 200;
+        int sideX = 900 - sideW;
+        int sideY = 50;
+        int h     = 25;
 
-void Clear() {
-    smilesInput[0] = '\0';
+        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Graph at X:");
+        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &graphX, -1000, 1000, false);
 
-    inputValid = false;
-    moleculeValidated = false;
-    moleculeLoaded = false;
-    val_flag = false;
-    end_flag = false;
+        sideY += h * 2 + pad;
+
+        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Graph at Y:");
+        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &graphY, -1000, 1000, false);
+
+        sideY += h * 2 + pad;
+
+        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Edge Thickness:");
+        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &edgeThickness, 1, 10, false);
+
+        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Labels", &showLabel);
+        x_pos += btnW + pad;
+
+        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Atom Nodes", &showAtom);
+        x_pos += btnW + pad;
+
+        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Implicit H", &showH);
+        x_pos += btnW + pad;
+
+        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Molecular Mass", &showMass);
 
 
-    smiles_input_size = 0;
-    atom_count = 0;
-    smiles_size = 0;
-
-    free(atomIndices);
-    free(molecule);
-    atomIndices = NULL;
-    molecule = NULL;
+    }
 
 
-}
+
+    void Clear(){
+        smilesInput[0] = '\0';
+
+        inputValid = false;
+        moleculeValidated = false;
+        moleculeLoaded = false;
+        val_flag = false;
+        end_flag = false;
+        hasLoadedErrrorArray = false;
+
+        smiles_input_size = 0;
+        atom_count = 0;
+        smiles_size = 0;
+
+        if (atomIndices) { free(atomIndices); atomIndices = NULL; }
+        if (molecule)    { free(molecule);    molecule = NULL; }
+        if (errorPos)    { free(errorPos);    errorPos = NULL; }
+
+    }
+
