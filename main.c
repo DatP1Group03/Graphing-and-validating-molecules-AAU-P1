@@ -9,7 +9,6 @@
 #include "raylib.h"
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
-#include "Adjacency_matrix.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -116,6 +115,7 @@ Color grayText  = DARKGRAY; //DARKGRAY er en foruddefineret farve fra raylib, og
 static int bfsOrder[MAX_ATOMS];
 static int bfsCount = 0;
 static bool bfsRan = false;
+static bool dfsRan = false;
 static char bfsLog[4096];   // tekstlog til GUI
 
 
@@ -521,8 +521,7 @@ void DrawTab_StabilityCheck()
 }
 
 
-void DrawTab_AlgorithmVisualization()
-{
+void DrawTab_AlgorithmVisualization() {
     //tegner blot titlen
     DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
 
@@ -535,7 +534,42 @@ void DrawTab_AlgorithmVisualization()
     // Knap til at starte BFS
     // har lavet en variabel der hedder bfsRan (defineret på linje 118) den gør at teksten afhænger om man har kørt BFS eller ikke. Hvis true så står der run BFS again, hvis false (standard) så står der blot BFS run.
     if (GuiButton((Rectangle){30, 130, 160, 30}, bfsRan ? "Run BFS again" : "Run BFS")) {
+        bfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
+        dfsRan = false;
+    }
 
+    // Knap til starte DFS
+    if (GuiButton((Rectangle){200, 130, 160, 30}, dfsRan ? "Run DFS again" : "Run DFS")) {
+        bfsRan = false;
+        dfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
+    }
+
+
+    if (!bfsRan && !dfsRan ) {
+        DrawText("Press 'Run BFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
+        return;
+    }
+
+    //hvis vi kommer hertil så er det fordi bfsRan er true.
+    if (bfsRan) {
+        // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
+        int atom_count = get_atom_count(smilesInput);
+        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+            bfsLog[0] = '\0';
+            bfsCount = 0;
+            bfsRan = false;
+            return;
+        }
+        if (atom_count > MAX_ATOMS) atom_count = MAX_ATOMS;  // sikkerhed
+
+        // Lav VLA adjacency matrix
+        int adjacency_matrix[atom_count][atom_count];
+        int bfs[atom_count];
+        create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
+        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atom_count, adjacency_matrix, 0, bfs, 0);
+    }
+
+    if (dfsRan) {
         // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
         int atom_count = get_atom_count(smilesInput);
         if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
@@ -549,59 +583,14 @@ void DrawTab_AlgorithmVisualization()
         // Lav VLA adjacency matrix
         int adjacency_matrix[atom_count][atom_count];
         create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-
-        // Kør BFS fra node 0 (eller anden startnode hvis du vil)
-        bfsLog[0] = '\0'; // nulstiller bfsLog så vi har en tom streng at gøre med.
-        bfsCount = bfs_matrix_gui(atom_count, adjacency_matrix, 0,
-                                  bfsOrder, bfsLog, sizeof(bfsLog)); // vi kalder bfs_matrix gui se library for kommentarer
-        bfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
+        int dfsmatrix[atom_count];
+        int visited[atom_count];
+        int parent[atom_count];
+        int lineheight = 0;
+        dfs_matrix_onlyforgui(0, atom_count, adjacency_matrix, dfsmatrix, visited, parent, 0, &lineheight);
     }
 
-    if (!bfsRan) {
-        DrawText("Press 'Run BFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
-        return;
-    }
 
-    // Vis BFS rækkefølge
-    DrawText("BFS traversal order:", 30, 190, 20, BLACK); //skriver overskriften
-    // vi ønsker at få bfs listen men med -> for hver gang vi har et tal denne bygges herunder
-    char orderLine[256] = "Order: ";
-    char tmp[32]; // vi laver først en temporary streng som vi bagefter sammenfletter med resten af den samlede streng. , så behøver vikke holde styr på index
-    for (int i = 0; i < bfsCount; i++) {
-        snprintf(tmp, sizeof(tmp), "%s%d", // vi laver en streng, hvis i == 0 så skal vi have mellemrum og hvis ikke skal vi have -> i starten af vores streng. snprintf laver en strengm og vi får her tallet med.
-                 (i == 0 ? "" : " -> "), bfsOrder[i]);
-        strncat(orderLine, tmp, sizeof(orderLine) - strlen(orderLine) - 1); // vi sammenfletter orderLine og tmp for hver gang.
-        // bufferens totale størrelse (256), strlen(orderline - hvor er brugt, vi skriver -1 da strncat altid tilføjer \0 så vi skal sikre at buffer ikke bliver null-termineret.
-    }
-    DrawText(orderLine, 30, 220, 20, BLACK); // vi skriver den samlet streng.
-
-    // så vi har lavet en log og den skal vi nu igennem
-    // Vis loggen fra bfs_matrix_gui linje for linje
-    int x = 30; // hvor vi starter hende
-    int y = 260;
-    int lineHeight = 18;
-
-    const char *p = bfsLog; // vi vil gå igennem vha. en pointer, således rykker vi ikke på bfslog placering.
-    while (*p && y < GetScreenHeight() - 20) { // mens pointeren ikke endnu er '\0' og vi stadig har plads på skærmen. så skal vi stadig tegne.
-        // find slut på linje
-        const char *lineStart = p; // vi laver en ny pointer her til hvor vi starter på en linje
-        const char *newline = strchr(p, '\n'); // en pointer der peger på slutningen af den linje vi har i linestart - husk strchr returnerr en pointer til den første occurrence af karakteren
-        int len = 0; // hvad er længden på linjen?
-        if (newline) { //altså hvis vi har en linje overhovedet
-            len = (int)(newline - lineStart); // så er længden lig med slut - start
-            p = newline + 1; // næste linje som vi skal tage næste gang
-        } else { // hvis ikke vi har et slut så er længden lig med start
-            len = (int)strlen(lineStart);
-            p += len; // vi rykker vores pointer frem med længden så vi kan indlæse ny linje næste gang.
-        }
-        // vi opretter en buffer, denne skal vi bruge til at skrive kun vores enkelte linje
-        char lineBuf[256];
-        snprintf(lineBuf, sizeof(lineBuf), "%.*s", len, lineStart); // vi får strengen fra linestart, således vi kan output den. Den gemmes i linebuf.
-
-
-        DrawText(lineBuf, x, y, 16, DARKGRAY); // vi skriver teksten
-        y += lineHeight; // vi rykker linjehøjden en takt ned.
-    }
 }
 
 
