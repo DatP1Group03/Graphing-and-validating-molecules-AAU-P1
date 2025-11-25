@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "bfs_matrix.h"
 #include "dfs_matrix.h"
 #include "Input/validation.h"
@@ -161,7 +160,7 @@ int main(void)
      * sætter vinduets størrelse (900,600)
      * sætter titlen i titellinjen vha. af string
      * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
-    InitWindow(900, 600, "S-SMILES");
+    InitWindow(1920, 1080, "S-SMILES");
     SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
     TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
     /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
