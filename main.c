@@ -326,56 +326,16 @@ void DrawTab_StabilityCheck()
 
 void DrawTab_AlgorithmVisualization()
 {
-    DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
 
-    if (GuiButton((Rectangle){30, 130, 120, 30}, "Start"))
-    {
-        //Har ingen ide hvordan det her skal implementeres,
-    }
 
 }
 
 void DrawTab_GraphView() {
 
-        //Knapper, de må godt fjernes hvis du ikke bruger dem JOnui. Ideen er at du plotter noderne ved en x værdi du assigner til graphX og det samme med graphY
-        // og så kan brugeren måske anvende det til at justere grafens placering.
-        int sidebarY = 600 - 20 - 25;
-        int btnW = 180;
-        int btnH = 25;
-        int pad  = 10;
-
-        int x_pos = 20;
-        int sideW = 200;
-        int sideX = 900 - sideW;
-        int sideY = 50;
-        int h     = 25;
-
-        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Graph at X:");
-        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &graphX, -1000, 1000, false);
-
-        sideY += h * 2 + pad;
-
-        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Graph at Y:");
-        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &graphY, -1000, 1000, false);
-
-        sideY += h * 2 + pad;
-
-        GuiLabel((Rectangle){ sideX, sideY, sideW, h }, "Edge Thickness:");
-        GuiSpinner((Rectangle){ sideX, sideY + h + 5, sideW, h }, NULL, &edgeThickness, 1, 10, false);
-
-        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Labels", &showLabel);
-        x_pos += btnW + pad;
-
-        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Atom Nodes", &showAtom);
-        x_pos += btnW + pad;
-
-        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Implicit H", &showH);
-        x_pos += btnW + pad;
-
-        GuiToggle((Rectangle){ x_pos, sidebarY, btnW, btnH }, "Show Molecular Mass", &showMass);
 
 
-    }
+
+}
 
 
 
