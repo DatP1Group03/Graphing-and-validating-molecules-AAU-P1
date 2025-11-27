@@ -25,22 +25,12 @@ Color grayText  = DARKGRAY;
 static char smilesInput[256] = {0};
 static bool inputValid = false;
 static bool editMode = false;
-static bool answered = false;
 static bool val_flag = false;
 static bool end_flag = false;
 static bool moleculeLoaded = false;
-static bool print = false;
 static bool moleculeValidated= false;
 static bool hasLoadedErrrorArray = false;
 
-static bool showH = false;
-static bool showLabel = false;
-static bool showAtom = false;
-static bool showMass = false;
-static bool inBranch = false;
-
-static bool evenBranch = false;
-static bool oddBranch = false;
 
 
 
