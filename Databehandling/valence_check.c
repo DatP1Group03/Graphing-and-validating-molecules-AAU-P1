@@ -46,9 +46,9 @@ void create_molecule(int smiles_size, const char input[]) {
             currentID++;
             atomCount++;
             switch (input[i]) {
-                case 'C': molecule[i].maxBonds = '4'; break;
-                case 'O': molecule[i].maxBonds = '2'; break;
-                case 'N': molecule[i].maxBonds = '3'; break;
+                case 'C': molecule[i].maxBonds = 4; break;
+                case 'O': molecule[i].maxBonds = 2; break;
+                case 'N': molecule[i].maxBonds = 3; break;
             }
         }
         else if (input[i] == '-' || input[i] == '=' || input[i] == '#') {

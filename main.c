@@ -185,17 +185,6 @@ void DrawTab_InputValidation()
         val_flag = false;
         moleculeLoaded = false;
 
-
-        if (errorPos != NULL) {
-            free(errorPos);
-            errorPos = NULL;
-        }
-
-        if (inputValid) {
-            int count = count_atoms(smilesInput);
-            errorPos = malloc(sizeof(int) * count);
-        }
-
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
         inputValid = validate_smiles(smilesInput); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
@@ -214,7 +203,6 @@ void DrawTab_InputValidation()
         }
         else {
             DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
-            int count = get_error_count();
             if (!inputValid) {
                 DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
 
@@ -316,12 +304,8 @@ void DrawTab_StabilityCheck()
     int radius =30;
     int dist_to_increment = 3*radius;
 
-    //test matrix
-    int adj[3][3] = {
-        {0, 2, 0},
-        {2, 0, 2},
-        {0, 2, 0}
-    };
+    int *adj = find_adjacency(smilesInput, atom_count);
+    create_adjacency_matrix(smilesInput, atom_count, adj);
 
     // skal kun køre en gang, derfor sentinel TEST "C=O=C
     if (!val_flag && inputValid && !moleculeLoaded) {
