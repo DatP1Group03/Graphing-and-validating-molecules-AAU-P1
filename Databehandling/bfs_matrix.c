@@ -8,7 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "external/raylib/src/raylib.h"
+
+// windows
+//#include "external/raylib/src/raylib.h"
+
+//LINUX
+#include "raylib.h"
+
 #define RAYGUI_IMPLEMENTATION
 
 /* The following function is our BFS algorithm. We input the following:
