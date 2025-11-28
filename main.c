@@ -229,10 +229,73 @@ void DrawTab_InputValidation()
 
 void DrawTab_AdjacencyMatrix()
 {
+    // Overskrift til tabben
     DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
 
-}
+    // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
+    if (!inputValid) {
+        DrawTextEx(uiFont,
+            "Please enter and validate a valid SMILES in the Input tab first.",
+            (Vector2){30,130}, 18,2, RED);
+        return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+    }
 
+    // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
+    int atom_count = get_atom_count(smilesInput);
+    // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
+    int adjacency_matrix[atom_count][atom_count];
+
+    create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
+
+    // nu har vi egentlig matrixen så nu skal vi egentlig "blot" have tegnet den som en tabel. men dette gøres egentlig som vi ville have gjort som et printf i terminalen
+    int startX = 80; // hvor vi ønsker tabllen starter i x
+    int startY = 170;
+    int cell_size = 30; // størrelsen på hver "celle" hvis man så det ligesom et excelark
+
+    // jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
+    for (int col = 0; col < atom_count; col++) {
+        DrawText(TextFormat("%d", col), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
+            startX + (col +1)*cell_size, startY, 18, BLACK);
+
+        // vi vil også gerne have en linje lige under.  der kan anvendes DrawLineEx (som anvender vector, men vi kan her vælge tykkelse derfor vælges denne).
+        // de ekstra +20 jeg har sat på et grundet fontsize er 18 så vi skal forbi talenne.
+        DrawLineEx((Vector2){startX, startY+20}, (Vector2){startX +20+ (col +1)*cell_size, startY+20},2, BLACK);
+    }
+
+    // Række-overskrifter
+    for (int row = 0; row < atom_count; row++) {
+        // Række-label
+        DrawText(TextFormat("%d", row),
+                 startX,
+                 startY + (row + 1) * cell_size,
+                 18,
+                 BLACK);
+
+        //linje for at adskille række label fremfor selve matrixen
+        DrawLineEx((Vector2){startX+20, startY+20}, (Vector2){startX+20, startY+20 + (row + 1) * cell_size},2, BLACK);
+
+
+        // Celler i rækken
+        for (int col = 0; col < atom_count; col++) {
+            int value = adjacency_matrix[row][col];
+
+            DrawText(TextFormat("%d", value),
+                        startX + (col + 1) * cell_size,
+                        startY + (row + 1) * cell_size,
+                        18,
+                        BLACK);
+        }
+    }
+
+    // lille forklarende tekst der forklarer atom count og hvilket input vi ser for:
+    DrawTextEx(uiFont,
+               TextFormat("Atoms: %d   SMILES: %s", atom_count, smilesInput),
+               (Vector2){30, startY + (atom_count + 2) * cell_size},
+               18,
+               2,
+               DARKGRAY);
+
+}
 void DrawTab_StabilityCheck()
 {
 
