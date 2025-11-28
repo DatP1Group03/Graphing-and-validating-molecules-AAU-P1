@@ -17,21 +17,15 @@ typedef struct {
     int implicitH;
     char atomChar;
     int  illegalValence;
-    int inBranch;
-    int xPos;
-    int yPos;
 
 } Symbol;
 
 extern Symbol *molecule;
-extern int *mainChain;
 extern int *atomIndices;
 extern int atomCount;
-extern int atomsInMainChain;
+
 
 int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]);
-int getValence();
-int getAtomsInBranch();
 
 
 #endif
