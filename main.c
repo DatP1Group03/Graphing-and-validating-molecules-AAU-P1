@@ -5,8 +5,11 @@
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "valence_check.h"
+//Windows
+// #include "external/raylib/src/raylib.h"
 
-#include "external/raylib/src/raylib.h"
+//LINUX
+#include "raylib.h"
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
@@ -304,7 +307,14 @@ void DrawTab_StabilityCheck()
     int radius =30;
     int dist_to_increment = 3*radius;
 
+    /* jeg har valgt at kommenterer dette ud, jeg tror det gror på en fejl. create_adjacency kalder selv på
+     * find_adjacency. og create_adjacency forventer et array allkoeret med størrelse og ikke en tom pointer.
+     * jeg har derfor tilladt mig at ændrer i det.
+     *
     int *adj = find_adjacency(smilesInput, atom_count);
+    create_adjacency_matrix(smilesInput, atom_count, adj);
+    */
+    int adj[atom_count][atom_count];
     create_adjacency_matrix(smilesInput, atom_count, adj);
 
     // skal kun køre en gang, derfor sentinel TEST "C=O=C
