@@ -8,9 +8,9 @@ add_subdirectory(Input)                # validation
 add_subdirectory(adjacency_matrix)     # Adjacency_matrix
 
 #har været nødt til at kommenterer det ud fordi jeg på linux skal bruge find_package
-#set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
-#add_subdirectory(${RAYLIB_SRC_DIR})
-find_package(raylib REQUIRED)   # bruger  raylib, der er installeret med pacman
+set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
+add_subdirectory(${RAYLIB_SRC_DIR})
+#find_package(raylib REQUIRED)   # bruger  raylib, der er installeret med pacman
 
 
 
@@ -20,7 +20,8 @@ add_executable(main
 
 
 target_include_directories(main PUBLIC
-       # ${RAYLIB_SRC_DIR}/src
+        ${CMAKE_SOURCE_DIR}/external
+        ${RAYLIB_SRC_DIR}/src
         ${CMAKE_SOURCE_DIR}/Input
         ${CMAKE_SOURCE_DIR}/Databehandling
         ${CMAKE_SOURCE_DIR}/adjacency_matrix

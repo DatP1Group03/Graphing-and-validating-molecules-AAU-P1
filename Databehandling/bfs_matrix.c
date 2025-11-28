@@ -4,10 +4,12 @@
 
 #include "bfs_matrix.h"
 
-#include <raylib.h>
+#include <raygui.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include "external/raylib/src/raylib.h"
+#define RAYGUI_IMPLEMENTATION
 
 /* The following function is our BFS algorithm. We input the following:
  * int n this is the number of nodes that we are dealing with. This is also why we see
