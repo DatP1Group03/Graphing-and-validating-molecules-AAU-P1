@@ -27,6 +27,28 @@ TEST_CASE(dfs_connected_graph, {
     }
 })
 
+TEST_CASE(dfs_connected_graph_dobbeltbindinger, {
+    int n = 6;
+    const int adj[6][6] = {
+        {0,2,0,0,0,0},
+        {2,0,2,0,2,0},
+        {0,2,0,2,0,2},
+        {0,0,2,0,0,0},
+        {0,2,0,0,0,0},
+        {0,0,2,0,0,0}
+    };
+
+    int dfs[6];
+    int visited[6]= {0};
+    int parent[6];
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+
+    const int expected[] = {0, 1, 2, 3, 5, 4};
+    for (int i = 0; i < n; i++ ) {
+        CHECK_EQ_INT(expected[i], dfs[i]);
+    }
+})
+
 /*
  * 2) Ikke-sammenhængende graf: to komponenter
  * 0-1-2 er forbundet, 3-4 er en separat komponent.
@@ -147,12 +169,35 @@ TEST_CASE(dfs_cycle_graph, {
          }
 })
 
+TEST_CASE(dfs_cycle_graph_dobbeltbindinger, {
+    int n = 4;
+    const int adj[4][4] = {
+        {0,2,0,2},
+        {2,0,2,0},
+        {0,2,0,2},
+        {2,0,2,0}
+    };
+
+    int dfs[4];
+    int visited[4] = {0};
+    int parent[4];
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+
+
+    const int expected[] = {0, 1, 2, 3};
+    for (int i = 0; i < n; i++ ) {
+             CHECK_EQ_INT(expected[i], dfs[i]);
+         }
+})
+
 MAIN_RUN_TESTS(
     dfs_connected_graph,
     dfs_disconnected_graph_from_0,
     dfs_single_node,
     dfs_no_edges_from_2,
     dfs_line_graph_start_middle,
-    dfs_cycle_graph
+    dfs_cycle_graph,
+    dfs_connected_graph_dobbeltbindinger,
+    dfs_cycle_graph_dobbeltbindinger
 )
 

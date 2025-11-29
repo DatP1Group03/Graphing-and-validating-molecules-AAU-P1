@@ -27,6 +27,28 @@ TEST_CASE(bfs_connected_graph, {
     CHECK_EQ_INT(expected[4], bfs[4]);
     CHECK_EQ_INT(expected[5], bfs[5]);
 })
+TEST_CASE(bfs_connected_graph_dobbeltbindinger, {
+    int n = 6;
+    const int adj[6][6] = {
+        {0,2,0,0,0,0},
+        {2,0,2,0,2,0},
+        {0,2,0,2,0,2},
+        {0,0,2,0,0,0},
+        {0,2,0,0,0,0},
+        {0,0,2,0,0,0}
+    };
+
+    int bfs[6];
+    int count = bfs_matrix(n, adj, 0, bfs);
+
+    const int expected[] = {0, 1, 2, 4, 3, 5};
+    CHECK_EQ_INT(expected[0], bfs[0]);
+    CHECK_EQ_INT(expected[1], bfs[1]);
+    CHECK_EQ_INT(expected[2], bfs[2]);
+    CHECK_EQ_INT(expected[3], bfs[3]);
+    CHECK_EQ_INT(expected[4], bfs[4]);
+    CHECK_EQ_INT(expected[5], bfs[5]);
+})
 
 /*
  * 2) Ikke-sammenhængende graf: to komponenter
@@ -138,6 +160,24 @@ TEST_CASE(bfs_cycle_graph, {
     CHECK_EQ_INT(expected[2], bfs[2]);
     CHECK_EQ_INT(expected[3], bfs[3]);
 })
+TEST_CASE(bfs_cycle_graph_dobbeltbindinger, {
+    int n = 4;
+    const int adj[4][4] = {
+        {0,2,0,2},
+        {2,0,2,0},
+        {0,2,0,2},
+        {2,0,2,0}
+    };
+
+    int bfs[4];
+    int count = bfs_matrix(n, adj, 0, bfs);
+
+    const int expected[] = {0, 1, 3, 2};
+    CHECK_EQ_INT(expected[0], bfs[0]);
+    CHECK_EQ_INT(expected[1], bfs[1]);
+    CHECK_EQ_INT(expected[2], bfs[2]);
+    CHECK_EQ_INT(expected[3], bfs[3]);
+})
 
 MAIN_RUN_TESTS(
     bfs_connected_graph,
@@ -145,5 +185,7 @@ MAIN_RUN_TESTS(
     bfs_single_node,
     bfs_no_edges_from_2,
     bfs_line_graph_start_middle,
-    bfs_cycle_graph
+    bfs_cycle_graph,
+    bfs_connected_graph_dobbeltbindinger,
+    bfs_cycle_graph_dobbeltbindinger
 )

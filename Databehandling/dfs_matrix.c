@@ -26,7 +26,7 @@ int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int v
     // We are going to run thorugh the row of the adj corresponding to the startnode, and see what the node is connected to. simply for learning purposes.
     int no_comma_on_first = 1; // this value is only used to secure that we dont get comma on first. Her we print comma first and then number so we are sured that we dont get comma on the last one.
     for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] == 1) {
+        if (adj[startnode][i] >= 1) {
             if (!no_comma_on_first) {
                 printf(", ");
             }
@@ -38,7 +38,7 @@ int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int v
 
     // now we are going to explore all adjacent vertices as deep as possible before, and we just do it in nummerical order (as they come in the neighbours array).
     for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] == 1 && visited[i] != 1) {
+        if (adj[startnode][i] >= 1 && visited[i] != 1) {
             printf("we are now going to visit %d. Our DFS list consist of: { ", i);
 
             int no_comma_on_first = 1;
@@ -60,7 +60,7 @@ int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int v
          * however, I have added an extra condition, namely that startnode < i, because then it will only be detected once :) otherwise you will
          * make it detect first around to the right, and then also where you go left, i.e. detect 1 --> 3 and then 3 --> 1.
          */
-        else if (adj[startnode][i] == 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
+        else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
             printf("Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)\n",
             startnode, parent[startnode], i, parent[i]);
 
@@ -119,7 +119,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
 
     int no_comma_on_first = 1;
     for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] == 1) {
+        if (adj[startnode][i] >= 1) {
             offset += snprintf(line + offset,
                                sizeof(line) - offset,
                                "%s%d",
@@ -135,7 +135,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
 
     // 2) Gå igennem naboer – DFS step + forklarende tekst
     for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] == 1 && visited[i] != 1) {
+        if (adj[startnode][i] >= 1 && visited[i] != 1) {
             // Tekst: "we are now going to visit i. Our DFS list consist of: { ... }"
             char dfsListLine[256];
             int off = snprintf(dfsListLine, sizeof(dfsListLine),
@@ -165,7 +165,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
          * however, I have added an extra condition, namely that startnode < i, because then it will only be detected once :) otherwise you will
          * make it detect first around to the right, and then also where you go left, i.e. detect 1 --> 3 and then 3 --> 1.
          */
-        else if (adj[startnode][i] == 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
+        else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
             char cycleLine[256];
             snprintf(cycleLine, sizeof(cycleLine),
                      "Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)",
