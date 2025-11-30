@@ -20,13 +20,11 @@
 int main(void)
 {
     int run = 1;
-/*
     while (run == 1) {
         run = runGUI();
     }
-*/ 
 
-	
+/* hvis man vil kører fra terminal	
     int n = 6;
     int adj[6][6] = {
         {0,1,1,0,0,0},  // 0: Naboer -> 1,2
@@ -62,7 +60,8 @@ int main(void)
     int cycles[6][2]; 
     int dfs_count = dfs_matrix(0, n, adj, dfsmatrixarr, visited,parent,cycles, &cycle_count, 0);
     printf(" >>> DFS finished, returned a list with %d and our number of atom in molecules is %d \n", dfs_count, n);
-    return 0;
+    */
+	return 0;
 }
 
 

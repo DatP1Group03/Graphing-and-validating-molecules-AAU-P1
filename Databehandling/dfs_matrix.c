@@ -120,7 +120,7 @@ void print_DFS_explanation() {
     printf("We are now going to perform DFS on the molecule \n");
 }
 
-int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int count, int *pLineHeight) {
+int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int cycles[][2], int *cycle_count, int count, int *pLineHeight) {
     // we mark node as visited, by using our matrix visited, we also insert ved node into the bfs matrix for the "list" of traversal.
     const int baseY = 220;
 
@@ -174,7 +174,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
             *pLineHeight += 20;
 
             parent[i] = startnode;
-            count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, count, pLineHeight);
+            count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, cycles, cycle_count, count, pLineHeight);
         }
         /* we can check here if there is a cycle! We can do this because we know that if we traverse the neighbors of a node,
          * and we find a neighbor who has already been visited, and that this is not our "parents", i.e. where we came from, then we have a
@@ -184,13 +184,33 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
          */
         else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
             char cycleLine[256];
-            snprintf(cycleLine, sizeof(cycleLine),
-                     "Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)",
-                     startnode, parent[startnode], i, parent[i]);
+		int already_seen = 0; 
 
-            DrawText(cycleLine, 30, baseY + *pLineHeight, 20, RED);
-            *pLineHeight += 20;
-        }
+			for (int k = 0; k < *cycle_count; k++){
+			if ( (cycles[k][0] == startnode && cycles[k][1] == i) || cycles[k][1] == startnode && cycles[k][0] == i){
+					already_seen = 1; 
+					break; 
+				}
+			}
+
+			if (already_seen == 0){
+				cycles[*cycle_count][0] = startnode; 
+				cycles[*cycle_count][1] = i;
+			
+
+            		snprintf(cycleLine, sizeof(cycleLine),
+                     		"Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)",
+                     		startnode, parent[startnode], i, parent[i]);
+
+				*cycle_count += 1; 
+			
+
+            		DrawText(cycleLine, 30, baseY + *pLineHeight, 20, RED);
+            		*pLineHeight += 20;
+
+			}
+
+		}
     }
 
     // 3) Backtracking-tekst
