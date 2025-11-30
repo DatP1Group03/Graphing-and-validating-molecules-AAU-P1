@@ -1,0 +1,15 @@
+add_test(test_input_Error 1: Illegal character
+ (position 2)
+Error 1: Unmatched '(' remain (position -1)
+Error 1: Unmatched '[' remain (position -1)
+Error 2: Ring not closed properly (position -1)
+Error 1: Two consecutive bond symbols beginning at position (position 2)
+Error 1: Ring not closed properly (position -1)
+ "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test/test_input" Error 1: Illegal character
+ (position 2)
+Error 1: Unmatched '(' remain (position -1)
+Error 1: Unmatched '[' remain (position -1)
+Error 2: Ring not closed properly (position -1)
+Error 1: Two consecutive bond symbols beginning at position (position 2)
+Error 1: Ring not closed properly (position -1)
+)

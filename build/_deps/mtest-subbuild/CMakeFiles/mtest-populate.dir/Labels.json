@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/mtest-populate"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/mtest-populate.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/mtest-populate-complete.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-build.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-configure.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-download.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-install.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-patch.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-test.rule"
+		},
+		{
+			"file" : "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/mtest-populate-prefix/src/mtest-populate-stamp/mtest-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"mtest-populate"
+		],
+		"name" : "mtest-populate"
+	}
+}

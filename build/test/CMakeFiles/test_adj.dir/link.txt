@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/test_adj.dir/link.d CMakeFiles/test_adj.dir/test_adjacency_matrix.c.o -o test_adj  ../adjacency_matrix/libAdjacency_matrix.a -lm

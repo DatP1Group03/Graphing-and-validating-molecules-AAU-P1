@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbfs_matrix.a CMakeFiles/bfs_matrix.dir/bfs_matrix.c.o
+/usr/bin/ranlib libbfs_matrix.a

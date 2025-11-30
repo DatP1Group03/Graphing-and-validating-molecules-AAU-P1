@@ -1,0 +1,74 @@
+[
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external\" -I/src -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/.\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/GUI\" -std=gnu11 -I/usr/include -o CMakeFiles/main.dir/main.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/main.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/main.c",
+  "output": "CMakeFiles/main.dir/main.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/Databehandling",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -std=gnu11 -o CMakeFiles/valenceCheck.dir/valence_check.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/valence_check.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/valence_check.c",
+  "output": "Databehandling/CMakeFiles/valenceCheck.dir/valence_check.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/Databehandling",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -std=gnu11 -o CMakeFiles/bfs_matrix.dir/bfs_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/bfs_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/bfs_matrix.c",
+  "output": "Databehandling/CMakeFiles/bfs_matrix.dir/bfs_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/Databehandling",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -std=gnu11 -o CMakeFiles/dfs_matrix.dir/dfs_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/dfs_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling/dfs_matrix.c",
+  "output": "Databehandling/CMakeFiles/dfs_matrix.dir/dfs_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/Input",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input\" -std=gnu11 -o CMakeFiles/validation.dir/validation.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input/validation.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input/validation.c",
+  "output": "Input/CMakeFiles/validation.dir/validation.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/adjacency_matrix",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/.\" -std=gnu11 -o CMakeFiles/Adjacency_matrix.dir/Adjacency_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/Adjacency_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/Adjacency_matrix.c",
+  "output": "adjacency_matrix/CMakeFiles/Adjacency_matrix.dir/Adjacency_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/GUI",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/GUI\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/.\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input\" -std=gnu11 -I/usr/include -o CMakeFiles/gui.dir/gui.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/GUI/gui.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/GUI/gui.c",
+  "output": "GUI/CMakeFiles/gui.dir/gui.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-src/include\" -std=gnu11 -I/usr/include -o CMakeFiles/test_bfs.dir/test_BFS_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_BFS_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_BFS_matrix.c",
+  "output": "test/CMakeFiles/test_bfs.dir/test_BFS_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-src/include\" -std=gnu11 -I/usr/include -o CMakeFiles/test_DFS.dir/test_DFS_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_DFS_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_DFS_matrix.c",
+  "output": "test/CMakeFiles/test_DFS.dir/test_DFS_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/.\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-src/include\" -std=gnu11 -o CMakeFiles/test_adj.dir/test_adjacency_matrix.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_adjacency_matrix.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/test_adjacency_matrix.c",
+  "output": "test/CMakeFiles/test_adj.dir/test_adjacency_matrix.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/external/raylib/src\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Databehandling\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/adjacency_matrix/.\" -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input\" -std=gnu11 -o CMakeFiles/test_val.dir/valence_test.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/valence_test.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/valence_test.c",
+  "output": "test/CMakeFiles/test_val.dir/valence_test.c.o"
+},
+{
+  "directory": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/test",
+  "command": "/usr/bin/cc  -I\"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/Input\" -std=gnu11 -o CMakeFiles/test_input.dir/input_validation_test.c.o -c \"/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/input_validation_test.c\"",
+  "file": "/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/test/input_validation_test.c",
+  "output": "test/CMakeFiles/test_input.dir/input_validation_test.c.o"
+}
+]

@@ -6,6 +6,8 @@
  * Forventet DFS fra node 0: 0 -> 1 -> 2 -> 3 -> 5 -> backtrack -> 2 -> backtrack -> 1 -> 4
  */
 TEST_CASE(dfs_connected_graph, {
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int n = 6;
     const int adj[6][6] = {
         {0,1,0,0,0,0},
@@ -19,7 +21,7 @@ TEST_CASE(dfs_connected_graph, {
     int dfs[6];
     int visited[6]= {0};
     int parent[6];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
     const int expected[] = {0, 1, 2, 3, 5, 4};
     for (int i = 0; i < n; i++ ) {
@@ -38,10 +40,12 @@ TEST_CASE(dfs_connected_graph_dobbeltbindinger, {
         {0,0,2,0,0,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[6];
     int visited[6]= {0};
     int parent[6];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
     const int expected[] = {0, 1, 2, 3, 5, 4};
     for (int i = 0; i < n; i++ ) {
@@ -64,10 +68,12 @@ TEST_CASE(dfs_disconnected_graph_from_0, {
         {0,0,0,1,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[6];
     int visited[6] = {0};
     int parent[6];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent,cycles, &cycle_count, 0);
 
     const int expected[] = {0, 1, 2};
     for (int i = 0; i < 3; i++ ) {
@@ -85,10 +91,12 @@ TEST_CASE(dfs_single_node, {
         {0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[6];
     int visited[6] = {0};
     int parent[6];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
     const int expected[] = {0};
     CHECK_EQ_INT(expected[0], dfs[0]);
@@ -107,10 +115,12 @@ TEST_CASE(dfs_no_edges_from_2, {
         {0,0,0,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[6];
     int visited[6] = {0};
     int parent[6];
-    int count = dfs_matrix(2, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(2, n, adj, dfs, visited, parent,cycles, &cycle_count, 0);
 
     const int expected[] = {2};
     CHECK_EQ_INT(expected[0], dfs[0]);
@@ -130,10 +140,12 @@ TEST_CASE(dfs_line_graph_start_middle, {
         {0,0,0,1,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[5];
     int visited[5] = {0};
     int parent[5];
-    int count = dfs_matrix(2, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(2, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
 
     const int expected[] = {2, 1, 0, 3, 4};
@@ -157,10 +169,12 @@ TEST_CASE(dfs_cycle_graph, {
         {1,0,1,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[4];
     int visited[4] = {0};
     int parent[4];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
 
     const int expected[] = {0, 1, 2, 3};
@@ -178,10 +192,12 @@ TEST_CASE(dfs_cycle_graph_dobbeltbindinger, {
         {2,0,2,0}
     };
 
+    int cycles[6][2]; 
+    int cycle_count = 0; 
     int dfs[4];
     int visited[4] = {0};
     int parent[4];
-    int count = dfs_matrix(0, n, adj, dfs, visited, parent, 0);
+    int count = dfs_matrix(0, n, adj, dfs, visited, parent, cycles, &cycle_count, 0);
 
 
     const int expected[] = {0, 1, 2, 3};
@@ -199,5 +215,4 @@ MAIN_RUN_TESTS(
     dfs_cycle_graph,
     dfs_connected_graph_dobbeltbindinger,
     dfs_cycle_graph_dobbeltbindinger
-)
-
+) 

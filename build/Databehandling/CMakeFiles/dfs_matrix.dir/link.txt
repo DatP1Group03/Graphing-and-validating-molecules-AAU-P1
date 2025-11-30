@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdfs_matrix.a CMakeFiles/dfs_matrix.dir/dfs_matrix.c.o
+/usr/bin/ranlib libdfs_matrix.a

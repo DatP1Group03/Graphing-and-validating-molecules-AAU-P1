@@ -1,0 +1,2 @@
+/usr/bin/ar qc libvalidation.a CMakeFiles/validation.dir/validation.c.o
+/usr/bin/ranlib libvalidation.a

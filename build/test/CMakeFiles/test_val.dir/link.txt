@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/test_val.dir/link.d CMakeFiles/test_val.dir/valence_test.c.o -o test_val  ../Databehandling/libvalenceCheck.a ../adjacency_matrix/libAdjacency_matrix.a ../Input/libvalidation.a -lm
