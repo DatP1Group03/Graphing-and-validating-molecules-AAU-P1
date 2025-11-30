@@ -1,2 +1,0 @@
-/usr/bin/ar qc libvalenceCheck.a CMakeFiles/valenceCheck.dir/valence_check.c.o
-/usr/bin/ranlib libvalenceCheck.a

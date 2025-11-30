@@ -1,3 +1,0 @@
-/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/mtest-populate.dir
-/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/edit_cache.dir
-/home/magnus/Nextcloud/Uni/Projekt P1/projekt/P1/build/_deps/mtest-subbuild/CMakeFiles/rebuild_cache.dir

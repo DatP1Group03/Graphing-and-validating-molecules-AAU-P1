@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/test_DFS.dir/link.d CMakeFiles/test_DFS.dir/test_DFS_matrix.c.o -o test_DFS  ../Databehandling/libdfs_matrix.a /usr/lib/libraylib.so ../Databehandling/libvalenceCheck.a -lm -L/usr/lib -lraylib

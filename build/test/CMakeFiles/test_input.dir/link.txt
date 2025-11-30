@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/test_input.dir/link.d CMakeFiles/test_input.dir/input_validation_test.c.o -o test_input  ../Input/libvalidation.a

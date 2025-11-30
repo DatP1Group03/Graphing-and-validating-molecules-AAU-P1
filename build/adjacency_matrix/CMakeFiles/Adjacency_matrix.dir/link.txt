@@ -1,2 +1,0 @@
-/usr/bin/ar qc libAdjacency_matrix.a CMakeFiles/Adjacency_matrix.dir/Adjacency_matrix.c.o
-/usr/bin/ranlib libAdjacency_matrix.a
