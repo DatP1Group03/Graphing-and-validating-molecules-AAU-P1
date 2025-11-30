@@ -1,2 +1,28 @@
+
+# Build directories
+build/
+cmake-build-*/
+out/
+bin/
+obj/
+
+# CLion / JetBrains
 .idea/
 cmake-build-debug/
+cmake-build-release/
+*.iml
+
+# Ccache / clangd / misc
+.cache/
+.clangd/
+.clang-format
+.clang-tidy
+
+# Raylib
+raylib/build/
+raylib/bin/
+raylib/lib/
+
+# OS specific
+.DS_Store
+Thumbs.db
