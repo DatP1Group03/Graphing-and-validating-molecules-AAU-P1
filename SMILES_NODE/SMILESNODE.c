@@ -2,7 +2,7 @@
 #include <string.h>
 #include "SMILESNODE.h"
 #include <ctype.h>
-#include "validation.h"
+#include "../Input/validation.h"
 
 
 static int read_atom_symbol(const char *s, char out[3]) {

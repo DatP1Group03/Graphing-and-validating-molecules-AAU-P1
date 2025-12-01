@@ -1,1 +1,0 @@
-// Her ligger mine tests for SMILESNODE.c

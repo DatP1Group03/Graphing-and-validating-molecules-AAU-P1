@@ -4,20 +4,13 @@ project(P1 C)
 set(CMAKE_C_STANDARD 11)
 
 add_subdirectory(Input)
+add_subdirectory(SMILES_NODE)
+add_subdirectory(Databehandling)
+add_subdirectory(TEST_SMILES_NODE)
 
-add_library(SMILES_NODE
-        "SMILES NODE/SMILESNODE.c"
-        "SMILES NODE/SMILESNODE.h"
-)
+add_executable(main SMILES_NODE/main.c)
 
-target_include_directories(SMILES_NODE PUBLIC ${CMAKE_SOURCE_DIR}/Input)
-target_link_libraries(SMILES_NODE PRIVATE validation)
-
-add_executable(main
-        "SMILES NODE/main.c"
-        "test for SMILES NODE/test_SMILESNODE.c"
-)
+target_link_libraries(main SMILES_NODE validation bfs_matrix)
 
 
-target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/Input)
-target_link_libraries(main PRIVATE SMILES_NODE validation)
+
