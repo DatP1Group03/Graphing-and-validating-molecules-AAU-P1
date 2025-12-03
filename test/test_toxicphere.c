@@ -196,10 +196,8 @@ TEST_CASE(more_atom_in_tox,{
 
 TEST_CASE(toxic_with_sidechain,{
 	  // arrange
-	printf("Toxic with sidechain \n"); 
 	  char smile[] = "CC(C)CC"; 
 	char toxicphore[] ="C(C)C"; 
-
 	  // assert 
 	int test = toxicphore_function(smile, toxicphore); 
 
@@ -208,6 +206,83 @@ TEST_CASE(toxic_with_sidechain,{
 	  //test 
 	CHECK_EQ_INT(1, test);  
 })
+
+TEST_CASE(toxic_with_twosidechain,{
+	  // arrange
+	  char smile[] = "CC(CC)(C)CC"; 
+	char toxicphore[] ="C(CC)(C)C"; 
+	  // assert 
+	int test = toxicphore_function(smile, toxicphore); 
+
+
+
+	  //test 
+	CHECK_EQ_INT(1, test);  
+})
+
+
+TEST_CASE(toxic_with_sidechain_but_not_in_molecule,{
+	  // arrange
+	  char smile[] = "CCCC"; 
+	char toxicphore[] ="C(C)(C)C"; 
+	  // assert 
+	int test = toxicphore_function(smile, toxicphore); 
+
+
+
+	  //test 
+	CHECK_EQ_INT(0, test);  
+})
+
+TEST_CASE(toxic_ring_no_match,{
+	  // arrange
+	  char smile[] = "C1CCCCCC1"; 
+	char toxicphore[] ="C(C)(C)C"; 
+	  // assert 
+	int test = toxicphore_function(smile, toxicphore); 
+
+
+
+	  //test 
+	CHECK_EQ_INT(0, test);  
+})
+
+TEST_CASE(toxic_two_ring,{
+	  // arrange
+	  char smile[] = "C1CCCC2CCCC12"; 
+	char toxicphore[] ="C1CCCCC1"; 
+	  // assert 
+	int test = toxicphore_function(smile, toxicphore); 
+
+
+
+	  //test 
+	CHECK_EQ_INT(1, test);  
+})
+/*aromatic ring but parser ignores smaller characters so just inputtet as big */ 
+TEST_CASE(toxic_aromatic,{
+	  // arrange
+	  char smile[] = "CC1CCCCC1"; 
+	char toxicphore[] ="C1CCCCC1"; 
+	  // assert 
+	int test = toxicphore_function(smile, toxicphore); 
+
+
+
+	  //test 
+	CHECK_EQ_INT(1, test);  
+})
+
+TEST_CASE(toxic_aromatic_like_negative, {
+    char smile[] = "CCCCCCC";      // only chain no ring
+    char toxic[] = "C1CCCCC1";     // but searches for ring
+
+    int result = toxicphore_function(smile, toxic);
+
+    CHECK_EQ_INT(0, result);
+})
+
+
 
 MAIN_RUN_TESTS(Propanal_dobbeltbond, 
 	       NC, 
@@ -222,4 +297,9 @@ MAIN_RUN_TESTS(Propanal_dobbeltbond,
 	       overlapping_matches,
 	       ring_structure_match,
 	       more_atom_in_tox,
-	       toxic_with_sidechain)
+	       toxic_with_sidechain,
+	       toxic_with_twosidechain,
+	       toxic_with_sidechain_but_not_in_molecule,
+	       toxic_ring_no_match,
+	       toxic_aromatic, 
+	       toxic_aromatic_like_negative)

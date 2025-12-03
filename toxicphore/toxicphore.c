@@ -16,7 +16,7 @@ int fill_atom_symbols_from_smile( const char *smiles, char atom_symbol[], int ma
 	}
 	return count; 
 }
-
+/*følgende funktion ved sidekæder. jeg har ræssoneret mig frem til at det er fordi at hvis den når en node hvor der ingen flere naboer er at gå til, så fejler den hele DFS'en. Istedetfor at gå tilbage og prøve en anden gren jeg tror at jeg vil lave den om således den er node-baseret fremfor kant-baseret. */ 
 /* Følgende funktion tager en startnode (her kaldt for t), og så traverse den hvad noden er forbundet til i adj_tox. Samtidig så forsøger den at finde et tilsvarende match i adj_main (som er vores hovedmolekyle). 
  * n_tox er antallet af atomer i tox smile. Kan fås vha. get_atom_count funktionen fra adjacency
  * adj_tox er vores adjacencey matrix for toxicphore (eller det molekyle vi gerne vil finde)
@@ -54,14 +54,14 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
 			// vi tjekker her om der er forbundelse mellem f(t) eller f(u) 
 			if (adj_main[mapping_tox_to_main[t]][mapping_tox_to_main[u]] >= 1){
 				printf("Allerede matchet! \n"); 
-				// hvis allerede et match så skal vi blot fortsætte med at finde noder ud fra u. 
-				int new_count = dfs_toxicphore(u, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count);
+				// hvis allerede et match så skal vi blot fortsætte med at finde noder ud fra uindtil vi ikke længere kan finde et match . 
+				if (dfs_toxicphore(u, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count)) { return 1; 
+					} else { 
+						printf("fandt ingen match \n"); 
+						return 0; 
+					}
 
 				// hvis vores dfs fortsætter og finder success så skal vi blot return count så ledes det returneres videre op gennem kald-stacken. Hvis ingen matches fandt så returneres 0 til kald-stacken. Det var den forkerte "vej". 
-				if (new_count != 0){ return new_count;} else {return 0;}
-      				} else {
-					printf("fandet ingen match \n"); 
-      					return 0;
       				} 
 		} else {// ellers har vi inne fundet et match endnu, og så skal vi finde en kandidat der kan være et match 
       			printf("Vi har ikke et match og derfor skal vi søge! \n"); 
@@ -72,23 +72,94 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
       						printf("fandt et match! \n");
 						used_main[j] = 1; 
 						mapping_tox_to_main[u] = j; 
-						count++;
-						int new_count = dfs_toxicphore(u, n_tox,adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count);
-						if (new_count != 0) {
-							return new_count;   // succes, bare boble op
-							 }
+						
+						if (dfs_toxicphore(u, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count +1)){
+							return 1; }
+
 						// backtrack hvis ikke man kan fortsætte :
 						used_main[j] = 0; // vi har alligevel ikke skulle "bruge den" 
 						mapping_tox_to_main[u] = -1; // vi unmapper den. 
-						count--; // og omgør vores count. 
 					}
       		}
 			// hvis ingen j virker så hvad der ingen matches. 
 			return 0; }
       	}
 	}
-	printf("og vi returner count! \n"); 
-	return count; 
+	printf("og vi returner (fail) fordi count != n_tox hvis vi er nået hertil  \n"); 
+	return 0; 
+}
+// funktion hvor vi istedet for at finde en nabo til t vil finde istedet for finde tilsvarende molekyle.  
+// t ER IKKE MATCHED ENDNU
+/* vælg en tox-node der ikke er matchet endnu
+
+prøv alle main-noder
+
+tjek alle constraints mod deres naboer
+
+backtrack hvis det fejler
+
+fortsæt ellers til næste tox-node
+*/
+int dfs_tox_nodebased(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox], int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main], int mapping_tox_to_main[n_tox], int used_main[n_main]){
+	
+	if (t == n_tox){
+		return 1; 
+	}
+
+	// hvis v allerede er mappet (pga. naboer) spring til næste 
+	if (mapping_tox_to_main[t] != -1){
+		printf("Allerede matchet så vi fortsætter til næste node \n"); 
+		return dfs_tox_nodebased(t + 1, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main); 
+	}
+
+	// nodebaseret så vi skal finde en main node 
+	for (int j= 0; j < n_main; j++){
+		if (tox_symbol[t] != main_symbol[j]) { continue; } // hvis ikke symbolerne er ens så kan vi blot springe over 
+		if (used_main[j]){continue;} // hvis den er brugt før så kan vi blot springe over. 
+
+		// at vi er kommet hertil betyder at vi har korrekt atomtype, og at den ikke er brugt. Nu skal vi tjekke om den er kompatibel med det vi allerede har mappet. 
+		int no_errors = 1; 
+		
+		for (int u = 0; u < n_tox; u++){
+			if (adj_tox[t][u] >= 1) { // hvis t og u er naboer i toxicphore
+      				if (mapping_tox_to_main[u] == -1){ // og u endnu ikke er mappet så skal vi blot fortsætte
+      					continue;
+				}
+				// hvis vi kommer hertil så er u allerede mappet og vi skal tjekke om den er kompatibel 
+				int mu = mapping_tox_to_main[u]; // mu er vores map til u, blot forkortelse
+				if (adj_main[j][mu] < 1) { // hvis vi ingen kant har i main så kan vi ikke sige at j er tilsvarende node til t. 
+					no_errors = 0; 
+					break; 
+				}
+				// hvis vi har en kant i main så skal vi tjekke om bindingstypen er et match
+				if (adj_main[j][mu] != adj_tox[t][u]){ //bindingstype mismatch
+					no_errors = 0; 
+					break; 
+				}
+				
+				// hvis u er mappet så skal vi være sikker på at der er en kant. 
+			}
+		}
+		
+		if (!no_errors){ continue;}
+
+		//ellers hvis vi ingen fejl har så kan vi vælge j som et billede af t. 
+		mapping_tox_to_main[t] = j; 
+		used_main[j] = 1; 
+
+		// vi forsætter med næste node i tox 
+		if (dfs_tox_nodebased(t+1, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main)){
+			return 1; 
+		}
+
+		// hvis ikke grenen lykkes så er noden ikke korrekt og vi skal backtrack
+		mapping_tox_to_main[t] = -1; 
+		used_main[j] = 0;
+	}
+	// ingen kandidat virkede
+	return 0; 
+
+
 }
 
 /* følgende funktion har det formål at vi indtil i vores dfs funktion har gået ud fra at vi allerede havde mappet en forbindelse mellem vores node t og en node i vores hovedmolekyle. 
@@ -100,9 +171,6 @@ int find_toxicphore_in_main(
     int mapping_tox_to_main[n_tox];
     int used_main[n_main];
 
-    // init
-    for (int i = 0; i < n_tox; i++) mapping_tox_to_main[i] = -1;
-    for (int j = 0; j < n_main; j++) used_main[j] = 0;
 
     // prøv alle main-noder som kandidat for tox-node 0
     for (int j = 0; j < n_main; j++) {
@@ -110,9 +178,12 @@ int find_toxicphore_in_main(
             printf("Prøver startmatch tox 0 (%c) -> main %d (%c)\n",
                    tox_symbol[0], j, main_symbol[j]);
 
+    // init
+    for (int i = 0; i < n_tox; i++) mapping_tox_to_main[i] = -1;
+    for (int j = 0; j < n_main; j++) used_main[j] = 0;
             mapping_tox_to_main[0] = j;
             used_main[j] = 1;
-
+/*
             int result = dfs_toxicphore(
                 0,
                 n_tox, adj_tox, tox_symbol,
@@ -120,20 +191,21 @@ int find_toxicphore_in_main(
                 mapping_tox_to_main, used_main, 0,
                 1   // count = 1, fordi vi allerede har matchet node 0
             );
-
-            if (result == n_tox) {
+*/
+	 if (dfs_tox_nodebased(1, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main)){
                 printf("Fandt fuldt toxicphore-match!\n");
                 // her kunne du fx printe mappingen også
                 return 1;
             }
-
+		}
+	}
             // backtrack start-valget
-            mapping_tox_to_main[0] = -1;
-            used_main[j] = 0;
-        }
-    }
+    		//for (int i = 0; i < n_tox; i++) mapping_tox_to_main[i] = -1;
+   		//for (int j = 0; j < n_main; j++) used_main[j] = 0;
+        // }
+    //}
 
-    return 0; // ingen match
+    return 0; //ingen match
 }
 
 /*følgende funktion tager vores to smile strenge og laver alle variabler der er nødvendigt for at finde toxicpheret i molekylet. Dette gør det blot nemt at køre funktionen */ 
