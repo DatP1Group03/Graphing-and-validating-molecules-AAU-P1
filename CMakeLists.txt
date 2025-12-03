@@ -7,6 +7,7 @@ add_subdirectory(Databehandling)       # bfs_matrix, dfs_matrix, valence_check
 add_subdirectory(Input)                # validation
 add_subdirectory(adjacency_matrix)     # Adjacency_matrix
 add_subdirectory(GUI)
+add_subdirectory(toxicphore)
 
 #har været nødt til at kommenterer det ud fordi jeg på linux skal bruge find_package
 #set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
@@ -36,6 +37,7 @@ target_link_libraries(main
         valenceCheck
         Adjacency_matrix
         gui
+	toxicphore
         raylib
         #opengl32 er windows-libs
         #gdi32
