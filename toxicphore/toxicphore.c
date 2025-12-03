@@ -28,7 +28,7 @@ int fill_atom_symbols_from_smile( const char *smiles, char atom_symbol[], int ma
  * used_main er alle de noder som vi har brugt indtil videre i vores hovedmolekyle. Initialiseres til 0. Idet at det anvendes vha. af at hvis der index er brugt så sættes blot 1. altså used_main[2] = 1 skal læses som noden 2 i adj_main[2] er blevet brugt og dermed er used_main sand. 
  * count = hvor mange noder vi har fundet. Hvis antallet er det samme som n_tox betyder vi har fundet toxicphere molekylet i hovedmolekylet. '
  * */ 
-int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox], int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main], int mapping_tox_to_main[n_tox], int used_main[n_main], int count) {
+int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox], int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main], int mapping_tox_to_main[n_tox], int used_main[n_main], int parent, int count) {
 	// vi forsøger at finde f: noder i tox --> noder i main 
 	// f er injektiv, ingen to noder i tox må pege på samme node i main
 	// Dette betyder følgende
@@ -46,6 +46,7 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
 	for (int u = 0; u < n_tox; u++){
 		printf("kører loop %d \n", u); 
       	if (adj_tox[t][u] >= 1){ // så en nabo betyder en værdi større 0. 
+		if (u == parent) {continue;} // hvis noden er der hvor vi kom fra så vil springe den over. 
 		printf("og vi har fundet et match mellem %d %d i toxicphere molekylet \n", t, u); 
       		// hvis vi allerede har mappet denne node så skal der være en kant mellem f(t) og f(u) så dette skal vi tjekke
 		if (mapping_tox_to_main[u] != -1){ 
@@ -54,7 +55,7 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
 			if (adj_main[mapping_tox_to_main[t]][mapping_tox_to_main[u]] >= 1){
 				printf("Allerede matchet! \n"); 
 				// hvis allerede et match så skal vi blot fortsætte med at finde noder ud fra u. 
-				int new_count = dfs_toxicphore(u, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, count);
+				int new_count = dfs_toxicphore(u, n_tox, adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count);
 
 				// hvis vores dfs fortsætter og finder success så skal vi blot return count så ledes det returneres videre op gennem kald-stacken. Hvis ingen matches fandt så returneres 0 til kald-stacken. Det var den forkerte "vej". 
 				if (new_count != 0){ return new_count;} else {return 0;}
@@ -72,7 +73,7 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
 						used_main[j] = 1; 
 						mapping_tox_to_main[u] = j; 
 						count++;
-						int new_count = dfs_toxicphore(u, n_tox,adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, count);
+						int new_count = dfs_toxicphore(u, n_tox,adj_tox, tox_symbol, n_main, adj_main, main_symbol, mapping_tox_to_main, used_main, t, count);
 						if (new_count != 0) {
 							return new_count;   // succes, bare boble op
 							 }
@@ -116,7 +117,7 @@ int find_toxicphore_in_main(
                 0,
                 n_tox, adj_tox, tox_symbol,
                 n_main, adj_main, main_symbol,
-                mapping_tox_to_main, used_main,
+                mapping_tox_to_main, used_main, 0,
                 1   // count = 1, fordi vi allerede har matchet node 0
             );
 
