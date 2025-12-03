@@ -8,6 +8,9 @@ add_executable(test_DFS test_DFS_matrix.c)
 target_link_libraries(test_DFS dfs_matrix mtest raylib)
 discover_tests(test_DFS)
 
+add_executable(test_toxicphere test_toxicphere.c) 
+target_link_libraries(test_toxicphere dfs_matrix mtest Adjacency_matrix toxicphore)
+discover_tests(test_toxicphere)
 
 add_executable(test_adj test_adjacency_matrix.c)
 target_link_libraries(test_adj Adjacency_matrix mtest)

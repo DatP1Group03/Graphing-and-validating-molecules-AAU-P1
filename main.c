@@ -63,9 +63,19 @@ if (is_it_valid_toxicphore == 1){
 		printf("Please try again \n"); 
 		return -1; 
 	}
-int toxicphore_test = toxicphore_function(smile, toxicphore); 
+char atom_symbol[100]; 
 
-	printf("toxicphore_test: %d \n", toxicphore_test); 
+int result = fill_atom_symbols_from_smile(smile, atom_symbol, atom_count); 
+
+printf("%d \n", result); 
+
+for (int i = 0; i < atom_count; i++){
+		printf("%c \n", atom_symbol[i]); 
+	}
+
+//int toxicphore_test = toxicphore_function(smile, toxicphore); 
+
+//	printf("toxicphore_test: %d \n", toxicphore_test); 
 
 
 /* hvis man vil kører fra terminal	
