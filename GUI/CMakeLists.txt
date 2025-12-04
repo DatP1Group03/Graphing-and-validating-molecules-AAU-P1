@@ -11,6 +11,7 @@ target_link_libraries(gui
         valenceCheck
         Adjacency_matrix
         validation
+	toxicphore
         raylib
         m
 )

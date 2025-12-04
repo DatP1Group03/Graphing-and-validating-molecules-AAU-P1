@@ -16,6 +16,7 @@ int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, 
 
 int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int cycles[][2], int *cycle_count, int count, int *pLineHeight, int baseX, int baseY);
 
+void DrawTab_Substructures();
 void DrawTab_AlgorithmVisualization();
 void DrawTab_GraphView();
 void Clear();

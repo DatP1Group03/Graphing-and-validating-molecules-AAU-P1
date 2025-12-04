@@ -15,6 +15,7 @@
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "valence_check.h"
+#include "toxicphore.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -32,7 +33,7 @@
  * Raygui: knapper, tekstbokse, tabs, sliders, labels og checkboxes.
  * raygui kræver egentlig ikke ekstra, det bruger bare raylibs tegninger.
  * Raygui er anderlees end klassisk UI-frameworks ved at der ingen UI-objekter er, istedet kalder man på funktioner, der
- * både tegnet UI-elementet og opdateret state, og returenere en værdi af en interaktion.
+* både tegnet UI-elementet og opdateret state, og returenere en værdi af en interaktion.
  * En knap lavet på følgende måde:
 * if (GuiButton((Rectangle){10, 10, 100, 30}, "Click me")) {
 // Knap blev trykket i denne frame
@@ -130,6 +131,8 @@ static char bfsLog[4096];   // tekstlog til GUI
 static char smilesInput[256] = {0}; // måske skulle denne istedet for 256 så være defineret til maxinput??
 /* det er vigtigt at vores smilesinput er static, fordi at husk på at vores loop kører 0 gange i sekunder, og dermed
  * så hvis ikke vores smilesinput var static så ville det simpelthen blive nulstillet for hvert frame */
+
+static char substructures_input[256] = {0}; 
 static bool inputValid = false; // dette værdi som sættes når vi har valideret den i vores tab "Input validation". Variablen kan bruges i andre faner, f.eks. giver det ikke mening at forsøge at lave matrixe hvis vores streng er forkert.
 static bool editMode = false; /* Raygui's tekstbokse bruger en "editMode" tilstand. Når editmode = true så betyder det
 at tekstboksen er aktiv, og tasturet skriver i den. når editmode= false, så er den inaktiv, og keyboard-input
@@ -151,6 +154,9 @@ GlyphInfo *glyphs;      // info for each glyph (codepoint, offsets…)
 } Font;
 og vi laver dermed en variabel ved navn uiFont. Denne skal anvendes når vi initiliaserer vores vindue. */
 
+// følgende funktioner er til substructure funktionen 
+static int pressedsubstructures = 0; 
+static int substructure_test = 0; 
 
 /* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
 int runGUI() {
@@ -160,7 +166,7 @@ int runGUI() {
      * sætter titlen i titellinjen vha. af string
      * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
 
-    InitWindow(900, 1000, "S-SMILES");
+    InitWindow(1200, 1000, "S-SMILES");
     SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
     TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
     /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
@@ -195,10 +201,11 @@ int runGUI() {
         "Stability",
         "Algorithms",
         "Graph View",
+	"Substructures",
     };
     int tabCount = sizeof(tabs) / sizeof(tabs[0]);  // finder hvor mange elementer vi har i vores char tabs array.
 
-    uiFont = LoadFontEx("rec/georgia.ttf", 30, NULL, 0);  // loader fonten georgia.ttf med størrelse 30 px. NULL,0 betyder at reaylib selv genere glyphs for standard ASCII.
+    uiFont = LoadFontEx("../GUI/roboto.ttf", 30, NULL, 0);  // loader fonten georgia.ttf med størrelse 30 px. NULL,0 betyder at reaylib selv genere glyphs for standard ASCII.
     GuiSetFont(uiFont); // istedet for standard font så er det georgia der sk
 
     // Set these once (global UI styles)
@@ -234,7 +241,7 @@ int runGUI() {
         GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
 
         // Definerer rektanglet (position og størrelse) for CLEAR-knappen
-        Rectangle clearTab = {740, 20, 140, 30};
+        Rectangle clearTab = {1005, 20, 140, 30};
         /* rectangle er en struct i raylib som ser ud på følgende:
         * typedef struct Rectangle {
         float x;
@@ -292,6 +299,7 @@ int runGUI() {
             case 2: DrawTab_StabilityCheck(); break;
             case 3: DrawTab_AlgorithmVisualization(); break;
             case 4: DrawTab_GraphView(); break;
+	    case 5: DrawTab_Substructures(); break; 
         }
 	
 
@@ -996,8 +1004,54 @@ void DrawTab_GraphView()
 
 }
 
+void DrawTab_Substructures(){
+	DrawText("Find Substructures (toxicphores) in the molecule", 30, 80, 25, BLACK);
+
+    // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
+    if (!inputValid) {
+        DrawTextEx(uiFont,
+            "Please enter and validate a valid SMILES in the Input tab first.",
+            (Vector2){30,160}, 18,2, RED);
+        return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+    }
+
+	// vi skal have lavet et input felt ligesom i "input validation" til at input vores substructure smile 
+	GuiLabel((Rectangle){30, 160, 150, 25}, "Substructure input:");
+
+	//Teksboks til input
+	if (GuiTextBox((Rectangle){220, 160, 300, 25}, substructures_input, 256, editMode)) {
+		editMode = !editMode; 
+	}
+
+	if (GuiButton((Rectangle){530, 160,100,25}, "Test")){
+		TraceLog(LOG_INFO, "Test pressed. Input: %s", substructures_input);
+		pressedsubstructures = 1; 
+
+		substructure_test = toxicphore_function(smilesInput, substructures_input);
+	}
+
+	if (pressedsubstructures){
+		// hvis den er 1 så er der fundet match 
+		if (substructure_test){
+			//GRØN Success-tekst 
+			DrawTextEx(uiFont, "The substructure was found!", (Vector2){30, 190}, 30, 0, goodGreen);
+		}
+		else {
+            	DrawTextEx(uiFont, "The substructure was not found", (Vector2){30, 190}, 25, 2, softRed);
+		}
+	}
+
+    DrawTextEx(uiFont,
+               TextFormat("SMILES: %s", smilesInput),
+               (Vector2){30, 130},
+               18,
+               2,
+               DARKGRAY);
+}
+
 void Clear() {
     smilesInput[0] = '\0';
+	substructures_input[0] = '\0'; 
 
     inputValid = false;
     moleculeValidated = false;
