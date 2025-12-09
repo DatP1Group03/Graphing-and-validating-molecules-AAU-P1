@@ -14,8 +14,11 @@
 #include "bfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
+#include "dfs_matrix.h"
 #include "valence_check.h"
 #include "toxicphore.h"
+#include "Graph_representation.h"
+#include "Graph_representation/Graph_representation.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -1028,11 +1031,34 @@ void DrawTab_AlgorithmVisualization() {
 }
 
 
-void DrawTab_GraphView()
-{
+void DrawTab_GraphView(){
     DrawText("Graph View Tab", 30, 80, 25, BLACK);
+	if (!inputValid) {
+		DrawTextEx(uiFont,
+			"Please enter and validate a valid SMILES in the Input tab first.",
+			(Vector2){30,160}, 18,2, RED);
+		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+	}
 
-    //Skal laves senere
+	int adjacency_matrix[atomCount][atomCount];
+
+	create_adjacency_matrix(smilesInput,atomCount,adjacency_matrix);
+
+	int dfsmatrix[atomCount];
+	int visited[atomCount];
+	int parent[atomCount];
+	int cycle_count = 0;
+	int cycles[atomCount][2];
+	int startnode = 0; // eller hvad du bruger som root
+	int count = 0;
+
+
+
+	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+
+
+	draw_molecule(smilesInput, atomCount, adjacency_matrix,&cycle_count);
+
 
 }
 

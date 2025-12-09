@@ -1,0 +1,3 @@
+add_library(Graph_representation Graph_representation.c)
+target_link_libraries(Graph_representation m)
+target_include_directories(Graph_representation PUBLIC .)
