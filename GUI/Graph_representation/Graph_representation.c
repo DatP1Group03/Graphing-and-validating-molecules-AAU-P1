@@ -11,10 +11,13 @@ void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count
 
     int rings[ring_count];
     for (int i = 0; i<ring_count; i++) {
-        rings[i]=0;
+        rings[i]=1;
     }
 
     ringSize(SMILES,ring_count, rings);
+for (int i = 0; i<ring_count;i++) {
+    printf("%d\n",rings[i]);
+}
 
     int current_atom = 0;
     int atoms_in_current_ring = 0;
@@ -74,7 +77,6 @@ void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count
         if (SMILES[i] == '(') {
             add_side_chain(&sideChains, current_atom - 1, position_increment);
             //if (in_ring) {
-            rotate_Vector(&position_increment, PI / 2);
             //} else {
             rotate_Vector(&position_increment, PI / 2);
             // }
@@ -102,17 +104,21 @@ void ring_rotation(Vector2 *vector, int size_of_ring) {
     rotate_Vector(vector, radians);
 }
 
-void ringSize(char *SMILES, int ring_count, int *ring[ring_count]) {
+void ringSize(char *SMILES, int ring_count, int ring[ring_count]) {
     int visited_rings_numbers[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int visited_rings[ring_count];
+
+    for (int i = 0; i<ring_count;i++) {
+        visited_rings[i]=0;
+    }
 
     int count = 0;
     for (int i = 0; i < strlen(SMILES); i++) {
         if (isdigit(SMILES[i])) {
             if (visited_rings_numbers[SMILES[i] - '0']) {
-                visited_rings[visited_rings_numbers[SMILES[i] - '0']] = 0;
+                visited_rings[visited_rings_numbers[SMILES[i] - '0']-1] = 0;
             } else {
-                visited_rings_numbers[SMILES[i] - '0']=count;
+                visited_rings_numbers[SMILES[i] - '0'] = count+1;
                 visited_rings[count] = 1;
                 count++;
             }
@@ -126,6 +132,10 @@ void ringSize(char *SMILES, int ring_count, int *ring[ring_count]) {
         }
         if (SMILES[i] == '(') {
             while (SMILES[i] != ')') {
+                if (isdigit(SMILES[i])) {
+                    i-=1;
+                    break;
+                }
                 i++;
             }
         }
