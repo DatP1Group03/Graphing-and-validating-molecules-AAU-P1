@@ -4,7 +4,7 @@
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "valence_check.h"
-
+#include "toxicphore/toxicphore.h"
 
 
 
@@ -19,10 +19,64 @@
 
 int main(void)
 {
+
+/*
     int run = 1;
     while (run == 1) {
         run = runGUI();
     }
+*/ 
+
+char smile[100];  
+
+printf("Please input SMILE string \n"); 
+scanf("%s", smile); 
+
+printf("Du inputtede smile: %s \n", smile);
+
+int is_it_valid = validate_smiles(smile); 
+
+if (is_it_valid == 1){
+		printf("The smile is valid \n"); 
+	} else {
+		printf("Please try again \n"); 
+		return -1; 
+	}
+int atom_count = get_atom_count(smile); 
+
+int adj[atom_count][atom_count]; 
+create_adjacency_matrix(smile, atom_count, adj);
+
+int valence = run_valence_check(atom_count,smile,  adj); 
+
+char toxicphore[100]; 
+printf("Nu skal du venligst indtaste smile string på det toxicphore du ønsker at find \n"); 
+scanf("%s", toxicphore); 
+
+printf("Du inputtede toxicphore: %s \n", toxicphore); 
+
+int is_it_valid_toxicphore = validate_smiles(toxicphore); 
+
+if (is_it_valid_toxicphore == 1){
+		printf("The toxicphore is valid \n"); 
+	} else {
+		printf("Please try again \n"); 
+		return -1; 
+	}
+char atom_symbol[100]; 
+
+int result = fill_atom_symbols_from_smile(smile, atom_symbol, atom_count); 
+
+printf("%d \n", result); 
+
+for (int i = 0; i < atom_count; i++){
+		printf("%c \n", atom_symbol[i]); 
+	}
+
+//int toxicphore_test = toxicphore_function(smile, toxicphore); 
+
+//	printf("toxicphore_test: %d \n", toxicphore_test); 
+
 
 /* hvis man vil kører fra terminal	
     int n = 6;
