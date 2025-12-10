@@ -161,7 +161,7 @@ int runGUI() {
      * sætter titlen i titellinjen vha. af string
      * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
 
-    InitWindow(900, 600, "S-SMILES");
+    InitWindow(900, 1000, "S-SMILES");
     SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
     TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
     /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
@@ -595,12 +595,15 @@ void DrawTab_AlgorithmVisualization() {
         int visited[atom_count];
         int parent[atom_count];
 
+	int cycle_count = 0; 
+	int cycles[atom_count][2]; 
+		
         for (int i = 0; i < atom_count; i++) {
             parent[i] = -1;
         }
 
         int lineheight = 0;
-        dfs_matrix_onlyforgui(0, atom_count, adjacency_matrix, dfsmatrix, visited, parent, 0, &lineheight);
+        dfs_matrix_onlyforgui(0, atom_count, adjacency_matrix, dfsmatrix, visited, parent, cycles, &cycle_count, 0, &lineheight);
     }
 
 
