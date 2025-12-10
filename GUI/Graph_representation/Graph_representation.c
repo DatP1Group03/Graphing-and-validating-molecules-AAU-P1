@@ -4,7 +4,6 @@
 
 #include "Graph_representation.h"
 
-#include <stdlib.h>
 
 void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count) {
     int SMILES_length = strlen(SMILES);
