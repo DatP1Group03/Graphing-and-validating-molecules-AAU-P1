@@ -20,13 +20,14 @@
 int main(void)
 {
 
-/*
+
     int run = 1;
     while (run == 1) {
         run = runGUI();
     }
-*/ 
 
+
+/*
 char smile[100];  
 
 printf("Please input SMILE string \n"); 
@@ -77,7 +78,7 @@ for (int i = 0; i < atom_count; i++){
 
 //	printf("toxicphore_test: %d \n", toxicphore_test); 
 
-
+*/
 /* hvis man vil kører fra terminal	
     int n = 6;
     int adj[6][6] = {
