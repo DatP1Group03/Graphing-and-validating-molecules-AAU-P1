@@ -14,8 +14,11 @@
 #include "bfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
+#include "dfs_matrix.h"
 #include "valence_check.h"
 #include "toxicphore.h"
+#include "Graph_representation.h"
+#include "Graph_representation/Graph_representation.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -464,27 +467,52 @@ void DrawTab_AdjacencyMatrix()
 	 * startY = 140+40+(-100) = 80
 	 * */
 
+	// vi laver et array udelukkende med atom symboler i rækkefølge således vi kan paste det ind
+	char smile_symbols[atom_count]; 
+	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atom_count); 
 	// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
     for (int col = 0; col < atom_count; col++) {
-        DrawText(TextFormat("%d", col), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
+        DrawText(TextFormat("%c", smile_symbols[col]), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
             startX + (col +1)*cell_size, startY, 18, BLACK);
 
         // vi vil også gerne have en linje lige under.  der kan anvendes DrawLineEx (som anvender vector, men vi kan her vælge tykkelse derfor vælges denne).
         // de ekstra +20 jeg har sat på et grundet fontsize er 18 så vi skal forbi talenne.
-        DrawLineEx((Vector2){startX, startY+20}, (Vector2){startX +20+ (col +1)*cell_size, startY+20},2, BLACK);
+        DrawLineEx((Vector2){startX, startY+26}, (Vector2){startX +20+ (col +1)*cell_size, startY+26},2, BLACK);
+	
+	DrawText(TextFormat("%d", col), 
+		startX + (col+1)*cell_size+12, startY+14,
+	  	4,
+	  	BLACK);
+	
+        DrawText(TextFormat("%c", smile_symbols[col]),
+                 80 + (24*(col+1)),
+                 startY + (atom_count+2) * cell_size,
+                 18,
+                 DARKGRAY);
+	
+	DrawText(TextFormat("%d", col), 
+		90 + (24*(col+1)), 
+	  	startY+ 14 + (atom_count+2) * cell_size,
+	  	1,
+	  	DARKGRAY);
     }
-
     // Række-overskrifter
     for (int row = 0; row < atom_count; row++) {
         // Række-label
-        DrawText(TextFormat("%d", row),
+        DrawText(TextFormat("%c", smile_symbols[row]),
                  startX,
                  startY + (row + 1) * cell_size,
                  18,
                  BLACK);
+	
+        DrawText(TextFormat("%d", row),
+                 startX+12,
+                 startY + (row + 1) * cell_size+14,
+                 4,
+                 BLACK);
 
         //linje for at adskille række label fremfor selve matrixen
-        DrawLineEx((Vector2){startX+20, startY+20}, (Vector2){startX+20, startY+20 + (row + 1) * cell_size},2, BLACK);
+        DrawLineEx((Vector2){startX+26, startY+20}, (Vector2){startX+26, startY+20 + (row + 1) * cell_size},2, BLACK);
 
 
         // Celler i rækken
@@ -492,21 +520,28 @@ void DrawTab_AdjacencyMatrix()
             int value = adjacency_matrix[row][col];
 
             DrawText(TextFormat("%d", value),
-                        startX + (col + 1) * cell_size,
-                        startY + (row + 1) * cell_size,
+                        startX+6 + (col + 1) * cell_size,
+                        startY+6 + (row + 1) * cell_size,
                         18,
                         BLACK);
         }
     }
 
     // lille forklarende tekst der forklarer atom count og hvilket input vi ser for:
+   
     DrawTextEx(uiFont,
-               TextFormat("Atoms: %d   SMILES: %s", atom_count, smilesInput),
+	       "SMILES:",
                (Vector2){30, startY + (atom_count + 2) * cell_size},
                18,
                2,
                DARKGRAY);
 
+    DrawTextEx(uiFont,
+               TextFormat("Atoms: %d", atom_count),
+               (Vector2){30, startY+ 35 + (atom_count + 2) * cell_size},
+               18,
+               2,
+               DARKGRAY);
 	EndScissorMode(); 
 }
 void DrawTab_StabilityCheck()
@@ -996,11 +1031,34 @@ void DrawTab_AlgorithmVisualization() {
 }
 
 
-void DrawTab_GraphView()
-{
+void DrawTab_GraphView(){
     DrawText("Graph View Tab", 30, 80, 25, BLACK);
+	if (!inputValid) {
+		DrawTextEx(uiFont,
+			"Please enter and validate a valid SMILES in the Input tab first.",
+			(Vector2){30,160}, 18,2, RED);
+		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+	}
 
-    //Skal laves senere
+	int adjacency_matrix[atomCount][atomCount];
+
+	create_adjacency_matrix(smilesInput,atomCount,adjacency_matrix);
+
+	int dfsmatrix[atomCount];
+	int visited[atomCount];
+	int parent[atomCount];
+	int cycle_count = 0;
+	int cycles[atomCount][2];
+	int startnode = 0; // eller hvad du bruger som root
+	int count = 0;
+
+
+
+	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+
+
+	draw_molecule(smilesInput, atomCount, adjacency_matrix,&cycle_count);
+
 
 }
 

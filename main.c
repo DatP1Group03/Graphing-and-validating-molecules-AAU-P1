@@ -73,7 +73,6 @@ printf("%d \n", result);
 for (int i = 0; i < atom_count; i++){
 		printf("%c \n", atom_symbol[i]); 
 	}
-
 //int toxicphore_test = toxicphore_function(smile, toxicphore); 
 
 //	printf("toxicphore_test: %d \n", toxicphore_test); 
