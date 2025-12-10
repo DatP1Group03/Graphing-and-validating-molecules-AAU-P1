@@ -3,19 +3,12 @@
 //
 
 #include "bfs_matrix.h"
-
-#include <raygui.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
-// windows
-//#include "external/raylib/src/raylib.h"
-
-//LINUX
-#include "raylib.h"
-
-#define RAYGUI_IMPLEMENTATION
+#include "Input/validation.h"
+#include "valence_check.h"
 
 /* The following function is our BFS algorithm. We input the following:
  * int n this is the number of nodes that we are dealing with. This is also why we see
@@ -106,118 +99,4 @@ void print_definition_of_BFS() {
     printf("discovered nodes are processed first. \n");
     printf("BFS continues this pattern of moving outward in waves until all reachable nodes have been visited. \n");
 }
-
-/* The following function is our BFS algorithm. We input the following:
- * int n this is the number of nodes that we are dealing with. This is also why we see
- * that an array of size [n][n] must be input.
- * const int adj[n][n] is our adjacency matrix as input. It is made const so that
- * We are not going to make any changes to it.
- * int src:the node we want to start at. This can range from 0 to n-1
- * int bfs[] is our array that we input into
- * */
-int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, int bfs[], int lineheight) {
-    int visited[n]; //matrix for keeping track of visited nodes. The node is equal to subscript and is indicated if visited with 0 or 1.
-    for (int i = 0; i < n; i++) {
-        visited[i] = 0;
-    }
-    int queue[n]; // queue is an array consisting of the elements we have seen but not yet visited
-    int front = 0, rear = 0; //
-    /* front is how many times we have dequeued an element from the queue. so actually how far BFS has come in the queue
-     * rear moves when we add to the queue. rear = number of elements in queue + front*/
-
-    int count = 0; // counts how many nodes we have visited.
-
-    // start-Y offset
-    const int baseY = 220;
-    DrawText(TextFormat("Our start node is %d", src), 30, baseY+lineheight, 20, BLACK);
-    lineheight += 20;
-    visited[src] = 1;
-    queue[rear++] = src; // we set queue[back (here 0)] = src, and since we have added an element to the queue then increments back to 1.
-
-    int dont_print_bfs_list_on_first = 1;
-    while ( front < rear ) {
-        // the following is simply for printing the bfs.
-        int no_comma_on_first = 1;
-
-        // Print BFS-listen efter første iteration
-
-        if (!dont_print_bfs_list_on_first) {
-            char bfsLine[256];
-            int offset = snprintf(bfsLine, sizeof(bfsLine),
-                                  "BFS list currently: {");
-
-            for (int j = 0; j < count; j++) {
-                offset += snprintf(bfsLine + offset,
-                                   sizeof(bfsLine) - offset,
-                                   "%s%d",
-                                   (j == 0 ? "" : ", "),
-                                   bfs[j]);
-            }
-
-            snprintf(bfsLine + offset,
-                     sizeof(bfsLine) - offset,
-                     "}");
-
-            DrawText(bfsLine, 30, baseY + lineheight, 20, BLACK);
-            lineheight += 20;
-        }
-        dont_print_bfs_list_on_first = 0;
-
-        // and here we print our queue
-        char queueLine[256];
-        int qOff = snprintf(queueLine, sizeof(queueLine),
-                            "In our queue we currently have the following: {");
-
-        no_comma_on_first = 1;
-        for (int i = front; i < rear; i++) {
-            qOff += snprintf(queueLine + qOff,
-                             sizeof(queueLine) - qOff,
-                             "%s%d",
-                             (no_comma_on_first ? "" : ", "),
-                             queue[i]);
-            no_comma_on_first = 0;
-        }
-
-        snprintf(queueLine + qOff,
-                 sizeof(queueLine) - qOff,
-                 "}");
-
-        DrawText(queueLine, 30, baseY + lineheight, 20, BLACK);
-        lineheight += 20;
-
-        int u = queue[front]; // The first time, queue[0] is set equal to u. U will be used to determine the first element in our array.
-        front++; //we now increment our front by 1, since we have just dequeued to u.
-        bfs[count] = u; // our queue element which is in u is an element in bfs.
-        count++; // we have added a node and therefore our count is advanced.
-        char visitLine[256];
-        int vOff = snprintf(visitLine, sizeof(visitLine),
-                            "We are visiting node %d and it is connected to unvisited elements: {",
-                            u);
-
-        no_comma_on_first = 1;
-        for (int v = 0; v < n; v++) {
-            if (adj[u][v] >= 1 && visited[v] == 0) {
-                visited[v] = 1;
-                queue[rear++] = v;
-
-                vOff += snprintf(visitLine + vOff,
-                                 sizeof(visitLine) - vOff,
-                                 "%s%d",
-                                 (no_comma_on_first ? "" : ", "),
-                                 v);
-                no_comma_on_first = 0;
-            }
-        }
-
-        snprintf(visitLine + vOff,
-                 sizeof(visitLine) - vOff,
-                 "}");
-
-        DrawText(visitLine, 30, baseY + lineheight, 20, BLACK);
-        lineheight += 20;
-    }
-    return count; // number of visited nodes - a quick way to see if visited = n, if they are then the molecule is complete.
-
-}
-
 

@@ -12,7 +12,6 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "bfs_matrix.h"
-#include "dfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "valence_check.h"
@@ -218,13 +217,11 @@ int runGUI() {
 
 
 
-
-
-
     while (!WindowShouldClose()) // Hoved-loop: kører indtil brugeren lukker vinduet (ESC, kryds, osv.)
     {
         BeginDrawing();  // Starter en ny frame – alt tegning mellem BeginDrawing/EndDrawing
         ClearBackground((Color){ 255, 250, 250 }); // Sætter baggrundsfarven (meget lys rosa/hvid)
+	
 
         // Gemmer de nuværende styles for BUTTON, så vi kan restore dem senere
         int oldBaseNormal = GuiGetStyle(BUTTON, BASE_COLOR_NORMAL);
@@ -296,6 +293,7 @@ int runGUI() {
             case 3: DrawTab_AlgorithmVisualization(); break;
             case 4: DrawTab_GraphView(); break;
         }
+	
 
         EndDrawing(); // Afslutter framen og viser den på skærmen
     }
@@ -411,12 +409,54 @@ void DrawTab_AdjacencyMatrix()
 
     create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
 
-    // nu har vi egentlig matrixen så nu skal vi egentlig "blot" have tegnet den som en tabel. men dette gøres egentlig som vi ville have gjort som et printf i terminalen
-    int startX = 80; // hvor vi ønsker tabllen starter i x
-    int startY = 170;
-    int cell_size = 30; // størrelsen på hver "celle" hvis man så det ligesom et excelark
+	/* Scroll opsætning til matrixen */ 
+	static Vector2 scroll = {0,0}; // static fordi den skal huskes mellem frames. dermed skal den kun initiliaserer en gang. Scroll vil løbende blive ændret, men skal beholdes mellem hver frame.  
+	
+	int screenW = GetScreenWidth(); // henter størrelsen på hele vinduet, dette gør at vi ikke skal huske at justere denne hvis vi ændrer vinduet.  
+	int screenH = GetScreenHeight(); 
 
-    // jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
+	// hvor på skærmen scroll-området skal være
+	Rectangle bounds = {
+		30, // x -position - scrollpanelet starter 30 pixels fra venstre kant 
+		140, // y-position - scrollpanalet starter 140 pixel fra toppen - så der er plads til vores titel osv. 
+		screenW - 60, // bredde (lidt margin i siderne (60 grundet vores position 30 til hver side.) 
+		screenH - 180, // højde (så der er plads til overskrift osv). 
+	}; 
+
+	int cell_size = 30; 
+
+	// hvor stort indholdet potentielt er (matrix + lidt ekstra plads) 
+	int contentWidth = (atom_count + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst. 
+	int contentHeight = (atom_count +4) * cell_size +80; 
+
+	// hvor stort indholdet potentielt kan være - hvis content er større end bounds -> scrollbars kommer frem 
+	Rectangle content = {
+		0, 0,  // origin i panelet
+		contentWidth, 
+		contentHeight, 
+	}; 
+
+	Rectangle view = {0}; // et tomt rektangel, dette skal vores GuiscrollPanel udfylde. Det bliver det synlgie udsnit af indholdet. 
+
+	GuiScrollPanel(bounds, "Adjacency Matrix", content, &scroll, &view); // tegnet scrollpanelets ramme, tegner scrollbarerene (vertikal og horizontal), opdaterer scroll.x og scroll.y i det at man scroller og returnerer i vew det område vi så må tegne i 
+
+	//
+	//Tegn Matrizen inde i scroll panelet 
+	//
+	BeginScissorMode(view.x, view.y, view.width, view.height);
+
+	// startposition for tegningen inde i panelet
+	double startX = bounds.x + 60 + scroll.x; // bounds = hvor panelet begynder på skærmen, plus lidt margin +60, og +scroll.x flytter indeholdet med scrollbaren. 
+	double startY = bounds.y + 40 + scroll.y; 
+
+	/** Eksempel på hvordan det virker. Lad os sige at vores scrollpanel ligger her bounds = {x=30, y=140, w=840, h=700} 
+	 * vi scroller nu 100 pixel ned 
+	 * scroll.y = -100 
+	 * så vil vores starty for denne frame være 
+	 * startY = 140+40+(-100) = 80
+	 * */
+
+	// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
     for (int col = 0; col < atom_count; col++) {
         DrawText(TextFormat("%d", col), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
             startX + (col +1)*cell_size, startY, 18, BLACK);
@@ -459,12 +499,11 @@ void DrawTab_AdjacencyMatrix()
                2,
                DARKGRAY);
 
+	EndScissorMode(); 
 }
 void DrawTab_StabilityCheck()
 {
     DrawTextEx(uiFont,"Stability Check Tab", (Vector2){30, 80,}, 30,2, BLACK);
-    int y = 250;
-    int x = 100;
     int radius =30;
     int dist_to_increment = 3*radius;
 
@@ -475,6 +514,38 @@ void DrawTab_StabilityCheck()
     int *adj = find_adjacency(smilesInput, atom_count);
     create_adjacency_matrix(smilesInput, atom_count, adj);
     */
+
+    
+	// Scroll opsætning til matrixen 
+	static Vector2 scroll_stability = {0,0}; 
+	int screenW_stability = GetScreenWidth();
+	int screenH_stability = GetScreenHeight(); 
+	
+	Rectangle bounds_stability = {
+		30, 
+		220,
+		screenW_stability - 60, 
+		screenH_stability - 260,
+	}; 
+	
+	int contentWidth_stability =atom_count * 90 +200; // bare en værdi jeg har trukket ud af hatten
+	int content_height_stability = 200+200; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
+	
+	Rectangle content_stability = {
+		0, 0,
+		contentWidth_stability, 
+		content_height_stability,
+	}; 
+
+	Rectangle view_stability = {0}; 
+
+	GuiScrollPanel(bounds_stability, "Stability", content_stability, &scroll_stability, &view_stability); 
+	
+	BeginScissorMode(view_stability.x, view_stability.y, view_stability.width, view_stability.height);
+    
+	int y = bounds_stability.y + scroll_stability.y + 250; // 250 i margin til at starte med 
+        int x = bounds_stability.x + scroll_stability.x + 100; 
+
     int adj[atom_count][atom_count];
     create_adjacency_matrix(smilesInput, atom_count, adj);
 
@@ -525,7 +596,262 @@ void DrawTab_StabilityCheck()
            }
         }
 
+		EndScissorMode(); 
+}
 
+
+/* The following function is our BFS algorithm. We input the following:
+ * int n this is the number of nodes that we are dealing with. This is also why we see
+ * that an array of size [n][n] must be input.
+ * const int adj[n][n] is our adjacency matrix as input. It is made const so that
+ * We are not going to make any changes to it.
+ * int src:the node we want to start at. This can range from 0 to n-1
+ * int bfs[] is our array that we input into
+ * */
+int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, int bfs[]) {
+    int visited[n]; //matrix for keeping track of visited nodes. The node is equal to subscript and is indicated if visited with 0 or 1.
+    for (int i = 0; i < n; i++) {
+        visited[i] = 0;
+    }
+    int queue[n]; // queue is an array consisting of the elements we have seen but not yet visited
+    int front = 0, rear = 0; //
+    /* front is how many times we have dequeued an element from the queue. so actually how far BFS has come in the queue
+     * rear moves when we add to the queue. rear = number of elements in queue + front*/
+
+    int count = 0; // counts how many nodes we have visited.
+    
+	// Scroll opsætning til matrixen 
+	static Vector2 scroll_bfs = {0,0}; 
+	int screenW_bfs = GetScreenWidth();
+	int screenH_bfs = GetScreenHeight(); 
+	
+	Rectangle bounds_bfs = {
+		30, 
+		220,
+		screenW_bfs - 60, 
+		screenH_bfs - 260,
+	}; 
+	
+	int contentWidth_bfs =1800; // bare en værdi jeg har trukket ud af hatten
+	int content_height_bfs = 20* n * 3 + 80; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
+	
+	Rectangle content_bfs = {
+		0, 0,
+		contentWidth_bfs, 
+		content_height_bfs,
+	}; 
+
+	Rectangle view_bfs = {0}; 
+
+	GuiScrollPanel(bounds_bfs, "BFS", content_bfs, &scroll_bfs, &view_bfs); 
+	
+	BeginScissorMode(view_bfs.x, view_bfs.y, view_bfs.width, view_bfs.height);
+    
+	int lineheight = bounds_bfs.y + scroll_bfs.y + 30; // 20 i margin til at starte med 
+        int x_bfs = bounds_bfs.x + scroll_bfs.x + 10; 
+    DrawText(TextFormat("Our start node is %d", src), x_bfs, lineheight, 20, BLACK);
+    lineheight += 20;
+    visited[src] = 1;
+    queue[rear++] = src; // we set queue[back (here 0)] = src, and since we have added an element to the queue then increments back to 1.
+
+    int dont_print_bfs_list_on_first = 1;
+    while ( front < rear ) {
+        // the following is simply for printing the bfs.
+        int no_comma_on_first = 1;
+
+        // Print BFS-listen efter første iteration
+
+        if (!dont_print_bfs_list_on_first) {
+            char bfsLine[256];
+            int offset = snprintf(bfsLine, sizeof(bfsLine),
+                                  "BFS list currently: {");
+
+            for (int j = 0; j < count; j++) {
+                offset += snprintf(bfsLine + offset,
+                                   sizeof(bfsLine) - offset,
+                                   "%s%d",
+                                   (j == 0 ? "" : ", "),
+                                   bfs[j]);
+            }
+
+            snprintf(bfsLine + offset,
+                     sizeof(bfsLine) - offset,
+                     "}");
+
+            DrawText(bfsLine, x_bfs, lineheight, 20, BLACK);
+            lineheight += 20;
+        }
+        dont_print_bfs_list_on_first = 0;
+
+        // and here we print our queue
+        char queueLine[256];
+        int qOff = snprintf(queueLine, sizeof(queueLine),
+                            "In our queue we currently have the following: {");
+
+        no_comma_on_first = 1;
+        for (int i = front; i < rear; i++) {
+            qOff += snprintf(queueLine + qOff,
+                             sizeof(queueLine) - qOff,
+                             "%s%d",
+                             (no_comma_on_first ? "" : ", "),
+                             queue[i]);
+            no_comma_on_first = 0;
+        }
+
+        snprintf(queueLine + qOff,
+                 sizeof(queueLine) - qOff,
+                 "}");
+
+        DrawText(queueLine, x_bfs, lineheight, 20, BLACK);
+        lineheight += 20;
+
+        int u = queue[front]; // The first time, queue[0] is set equal to u. U will be used to determine the first element in our array.
+        front++; //we now increment our front by 1, since we have just dequeued to u.
+        bfs[count] = u; // our queue element which is in u is an element in bfs.
+        count++; // we have added a node and therefore our count is advanced.
+        char visitLine[256];
+        int vOff = snprintf(visitLine, sizeof(visitLine),
+                            "We are visiting node %d and it is connected to unvisited elements: {",
+                            u);
+
+        no_comma_on_first = 1;
+        for (int v = 0; v < n; v++) {
+            if (adj[u][v] >= 1 && visited[v] == 0) {
+                visited[v] = 1;
+                queue[rear++] = v;
+
+                vOff += snprintf(visitLine + vOff,
+                                 sizeof(visitLine) - vOff,
+                                 "%s%d",
+                                 (no_comma_on_first ? "" : ", "),
+                                 v);
+                no_comma_on_first = 0;
+            }
+        }
+
+        snprintf(visitLine + vOff,
+                 sizeof(visitLine) - vOff,
+                 "}");
+
+        DrawText(visitLine, x_bfs, lineheight, 20, BLACK);
+        lineheight += 20;
+    }
+    EndScissorMode(); 
+
+    return count; // number of visited nodes - a quick way to see if visited = n, if they are then the molecule is complete.
+
+}
+
+
+int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int cycles[][2], int *cycle_count, int count, int *pLineHeight, int baseX, int baseY) {
+    // we mark node as visited, by using our matrix visited, we also insert ved node into the bfs matrix for the "list" of traversal.
+
+
+    visited[startnode] = 1;
+    dfsmatrix[count++] = startnode;
+
+    // Tekst: "We mark: X as visited and add it to our list. and its neighbours are { ... }"
+    char line[256];
+    int offset = snprintf(line, sizeof(line),
+                          "We mark: %d as visited and add it to our list. and its neighbours are { ",
+                          startnode);
+
+    int no_comma_on_first = 1;
+    for (int i = 0; i < n; i++) {
+        if (adj[startnode][i] >= 1) {
+            offset += snprintf(line + offset,
+                               sizeof(line) - offset,
+                               "%s%d",
+                               (no_comma_on_first ? "" : ", "),
+                               i);
+            no_comma_on_first = 0;
+        }
+    }
+    snprintf(line + offset, sizeof(line) - offset, " }");
+
+    DrawText(line, baseX, baseY + *pLineHeight, 20, BLACK);
+    *pLineHeight += 20;
+
+    // 2) Gå igennem naboer – DFS step + forklarende tekst
+    for (int i = 0; i < n; i++) {
+        if (adj[startnode][i] >= 1 && visited[i] != 1) {
+            // Tekst: "we are now going to visit i. Our DFS list consist of: { ... }"
+            char dfsListLine[256];
+            int off = snprintf(dfsListLine, sizeof(dfsListLine),
+                               "We are now going to visit %d. Our DFS list consist of: { ",
+                               i);
+
+            int first = 1;
+            for (int j = 0; j < count; j++) {
+                off += snprintf(dfsListLine + off,
+                                sizeof(dfsListLine) - off,
+                                "%s%d",
+                                (first ? "" : ", "),
+                                dfsmatrix[j]);
+                first = 0;
+            }
+            snprintf(dfsListLine + off, sizeof(dfsListLine) - off, " }");
+
+            DrawText(dfsListLine, baseX, baseY + *pLineHeight, 20, BLACK);
+            *pLineHeight += 20;
+
+            parent[i] = startnode;
+            count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, cycles, cycle_count, count, pLineHeight, baseX, baseY);
+        }
+        /* we can check here if there is a cycle! We can do this because we know that if we traverse the neighbors of a node,
+         * and we find a neighbor who has already been visited, and that this is not our "parents", i.e. where we came from, then we have a
+         * cycle in which we can then go back. We can set this up as the following conditions
+         * however, I have added an extra condition, namely that startnode < i, because then it will only be detected once :) otherwise you will
+         * make it detect first around to the right, and then also where you go left, i.e. detect 1 --> 3 and then 3 --> 1.
+         */
+        else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
+            char cycleLine[256];
+		int already_seen = 0; 
+
+			for (int k = 0; k < *cycle_count; k++){
+			if ( (cycles[k][0] == startnode && cycles[k][1] == i) || cycles[k][1] == startnode && cycles[k][0] == i){
+					already_seen = 1; 
+					break; 
+				}
+			}
+
+			if (already_seen == 0){
+				cycles[*cycle_count][0] = startnode; 
+				cycles[*cycle_count][1] = i;
+			
+
+            		snprintf(cycleLine, sizeof(cycleLine),
+                     		"Cycle detected: Node %d (parent %d) has an edge to already visited node %d (parent %d)",
+                     		startnode, parent[startnode], i, parent[i]);
+
+				*cycle_count += 1; 
+			
+
+            		DrawText(cycleLine, baseX, baseY + *pLineHeight, 20, RED);
+            		*pLineHeight += 20;
+
+			}
+
+		}
+    }
+
+    // 3) Backtracking-tekst
+    if (parent[startnode] != -1) {
+        char backLine[256];
+        snprintf(backLine, sizeof(backLine),
+                 "Since all neighbours of %d are now visited, we backtrack to node %d.",
+                 startnode, parent[startnode]);
+        DrawText(backLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
+        *pLineHeight += 20;
+    } else {
+        char doneLine[256];
+        snprintf(doneLine, sizeof(doneLine),
+                 "Since all neighbours of %d are now visited, DFS from the root is complete here.",
+                 startnode);
+        DrawText(doneLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
+        *pLineHeight += 20;
+    }
+    return count;
 }
 
 
@@ -574,7 +900,7 @@ void DrawTab_AlgorithmVisualization() {
         int adjacency_matrix[atom_count][atom_count];
         int bfs[atom_count];
         create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atom_count, adjacency_matrix, 0, bfs, 0);
+        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atom_count, adjacency_matrix, 0, bfs);
     }
 
     if (dfsRan) {
@@ -602,8 +928,60 @@ void DrawTab_AlgorithmVisualization() {
             parent[i] = -1;
         }
 
-        int lineheight = 0;
-        dfs_matrix_onlyforgui(0, atom_count, adjacency_matrix, dfsmatrix, visited, parent, cycles, &cycle_count, 0, &lineheight);
+	  static Vector2 scrollDFS = { 0, 0 };
+
+    	int screenW = GetScreenWidth();
+    	int screenH = GetScreenHeight();
+
+    	Rectangle bounds = (Rectangle){
+       	 	30,
+       		 220,             // lige under knapperne
+        	screenW - 60,
+        	screenH - 260
+    	};
+
+    	// Hvor meget tekst DFS max kan lave:
+    	// groft: ~3 linjer per node + lidt ekstra
+    	int contentHeight = 3 * 20 * atom_count + 200;  // 20 px pr linje
+    	int contentWidth  = 900 + atom_count*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
+
+    	Rectangle content = (Rectangle){
+        0, 0,
+        contentWidth,
+        contentHeight
+    	};
+
+   	 Rectangle view = {0};
+
+   	 GuiScrollPanel(bounds, "DFS explanation", content, &scrollDFS, &view);
+
+    	BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+
+    	int lineHeight = 0;
+
+    	int baseX = (int)(bounds.x + 10 + scrollDFS.x);
+    	int baseY = (int)(bounds.y + 30 + scrollDFS.y);
+
+    	int startnode = 0; // eller hvad du bruger som root
+    	int count = 0;
+
+    	count = dfs_matrix_onlyforgui(
+        	startnode,
+       		atom_count,
+        	adjacency_matrix,
+        	dfsmatrix,
+        	visited,
+        	parent,
+        	cycles,
+        	&cycle_count,
+        	count,
+        	&lineHeight,
+        	baseX,
+        	baseY
+    );
+
+    EndScissorMode();
+
     }
 
 
