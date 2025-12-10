@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 11)
 add_subdirectory(Databehandling)       # bfs_matrix, dfs_matrix, valence_check
 add_subdirectory(Input)                # validation
 add_subdirectory(adjacency_matrix)     # Adjacency_matrix
+add_subdirectory(GUI)
 
 #har været nødt til at kommenterer det ud fordi jeg på linux skal bruge find_package
 #set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
@@ -34,7 +35,7 @@ target_link_libraries(main
         validation
         valenceCheck
         Adjacency_matrix
-
+        gui
         raylib
         #opengl32 er windows-libs
         #gdi32
