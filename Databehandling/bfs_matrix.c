@@ -76,7 +76,7 @@ int bfs_matrix(int n, const int adj[n][n], int src, int bfs[]) {
         printf("We are visiting node %d and it is connected to unvisited elements: {", u);
         no_comma_on_first = 1;
         for (int v = 0; v < n; v++) {
-            if (adj[u][v] == 1 && visited[v] == 0) { // so here we check if adj[u][v] has 1, i.e. if there is a connection. and we check if it has already been visited!
+            if (adj[u][v] >= 1 && visited[v] == 0) { // so here we check if adj[u][v] has 1, i.e. if there is a connection. and we check if it has already been visited!
                 visited[v] = 1; // We'll mark it as visited!
                 queue[rear++] = v; // and we add it to our queue. which then automatically also to bfs when while runs from the front. Because we have added to the queue, we increment our rear.
 
@@ -196,7 +196,7 @@ int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, 
 
         no_comma_on_first = 1;
         for (int v = 0; v < n; v++) {
-            if (adj[u][v] == 1 && visited[v] == 0) {
+            if (adj[u][v] >= 1 && visited[v] == 0) {
                 visited[v] = 1;
                 queue[rear++] = v;
 
