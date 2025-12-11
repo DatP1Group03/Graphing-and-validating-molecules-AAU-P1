@@ -15,6 +15,7 @@
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "dfs_matrix.h"
+#include "drawBoxedText.h"
 #include "valence_check.h"
 #include "toxicphore.h"
 #include "Graph_representation.h"
@@ -131,11 +132,22 @@ static bool dfsRan = false;
 static char bfsLog[4096];   // tekstlog til GUI
 
 
+//infobokse
+
+static const char *smilesValidationText =
+	"The SMILES validation module analyzes the input string through several "
+	"linear scans (for-loops), each running in O(n) time. The first pass checks "
+	"that every character is part of the allowed SMILES symbol set. A second "
+	"scan uses simple stack logic to ensure that parentheses and brackets are "
+	"properly opened and closed,";
+
+
 static char smilesInput[256] = {0}; // måske skulle denne istedet for 256 så være defineret til maxinput??
 /* det er vigtigt at vores smilesinput er static, fordi at husk på at vores loop kører 0 gange i sekunder, og dermed
  * så hvis ikke vores smilesinput var static så ville det simpelthen blive nulstillet for hvert frame */
 
-static char substructures_input[256] = {0}; 
+static char substructures_input[256] = {0};
+bool showValidationInfo = false;
 static bool inputValid = false; // dette værdi som sættes når vi har valideret den i vores tab "Input validation". Variablen kan bruges i andre faner, f.eks. giver det ikke mening at forsøge at lave matrixe hvis vores streng er forkert.
 static bool editMode = false; /* Raygui's tekstbokse bruger en "editMode" tilstand. Når editmode = true så betyder det
 at tekstboksen er aktiv, og tasturet skriver i den. når editmode= false, så er den inaktiv, og keyboard-input
@@ -315,29 +327,116 @@ int runGUI() {
 
 void DrawTab_InputValidation()
 {
-    // Overskrift til tabben
-    DrawTextEx(uiFont,"Input Validation Tab", (Vector2){30,80},30,2, BLACK);
-    /* vector2 er en struct med to floats i raylib, som bruges til at angive 2d-posiitioner i raylib er der defineret:
-       typedef struct Vector2 {
-       float x;
-       float y;
-   } Vector2;
-   */
-    // Label foran tekstfeltet
-    GuiLabel((Rectangle){30, 130, 120, 25}, "SMILES Input:");
 
-    // Tekstboks til SMILES-input
-    if (GuiTextBox((Rectangle){160, 130, 300, 25}, smilesInput, 256, editMode))
+
+    GuiToggle((Rectangle){830, 550, 60, 25}, "?", &showValidationInfo);
+
+    if(showValidationInfo){
+        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        smilesValidationText,
+        (Rectangle){ 40, 140, 820, 280 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+
+
+        DrawTextEx(uiFont,"User Example:", (Vector2){50, 480},30,2, BLACK);
+        if (!moleculeValidated) {
+
+        }
+        else {
+            moleculeValidated = true;
+            inputValid = validate_smiles(smilesInput);
+
+            val_flag = false;
+            moleculeLoaded = false;
+
+            Vector2 start = {250, 480};
+            float fontSize = 30;
+            float spacing = 2;
+
+            // Tegn Smiles
+            DrawTextEx(uiFont, smilesInput, start, fontSize, spacing, BLACK);
+
+            // Bredde af tekst
+            Vector2 size = MeasureTextEx(uiFont, smilesInput, fontSize, spacing);
+
+            // Start af linjer er lig med start af smiles + bredde + lidt ekstra plads
+            float gap = 12.0f;
+            float beginPosx = start.x + size.x + gap;
+
+            // midt y pos
+            float midY = start.y + fontSize * 0.5f;
+
+            // Mellemrum imellem linjer
+            float dy = 50;
+
+            // STArt
+            Vector2 beginPos = {beginPosx, midY};
+
+            // slutpunkter
+            Vector2 b1 = {beginPosx + 80, midY - dy};
+            Vector2 b2 = {beginPosx + 80, midY};
+            Vector2 b3 = {beginPosx + 80, midY + dy};
+            Vector2 b4 = {beginPosx + 80, midY + dy * 2};
+
+            // Tegn linjer
+            DrawLineV(beginPos, b1, BLACK);
+            DrawLineV(beginPos, b2, BLACK);
+            DrawLineV(beginPos, b3, BLACK);
+            DrawLineV(beginPos, b4, BLACK);
+
+            if (is_permitted(smilesInput)) {
+                DrawTextEx(uiFont, "PERMITTED CHARACTERS",
+                           (Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, GREEN);
+            } else {
+                DrawTextEx(uiFont, "ILLEGAL CHARACTER",
+                           (Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, RED);
+            }
+
+
+            if (closed_brackets(smilesInput)) {
+                DrawTextEx(uiFont, "BALANCED PARENTHESES",
+                           (Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, GREEN);
+            } else {
+                DrawTextEx(uiFont, "UNBALANCED PARENTHESES",
+                           (Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, RED);
+            }
+
+
+            if (ring_closed(smilesInput)) {
+                DrawTextEx(uiFont, "RING STRUCTURE VALID",
+                           (Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, GREEN);
+            } else {
+                DrawTextEx(uiFont, "INVALID RING CLOSURE",
+                           (Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, RED);
+            }
+
+
+            if (misc_check(smilesInput)) {
+                DrawTextEx(uiFont, "MISC STRUCTURE VALID",
+                           (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, GREEN);
+            } else {
+                DrawTextEx(uiFont, "MISC STRUCTURE ERROR",
+                           (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, RED);
+            }
+        }
+        inputValid = validate_smiles(smilesInput);
+    }
+
+
+    if (!showValidationInfo) {
+
+        DrawTextEx(uiFont,"Input Validation Tab", (Vector2){30,80},30,2, BLACK);
+
+        GuiLabel((Rectangle){30, 130, 120, 25}, "SMILES Input:");
+        if (GuiTextBox((Rectangle){160, 130, 300, 25}, smilesInput, 256, editMode)){
         editMode = !editMode;
-
-    /*
-     GuiTextBox:
-     - Tegner tekstfeltet
-     - Skriver brugerens input ind i `smilesInput`
-     - Returnerer true, når brugeren "afslutter" editing (Enter/tab/click)
-     - Her: når den returnerer true, toggler du editMode, altså guitextbox() bliver true i den frame hvor brugeren afslutter
-     tekstredigeringen ved at enten gør følgende: tab, enter eller klikke udenfor tekstfeltet.
-   */
+    }
 
     // Validate button
     if (GuiButton((Rectangle){470, 130, 100, 25}, "Validate"))
@@ -352,18 +451,11 @@ void DrawTab_InputValidation()
         inputValid = validate_smiles(smilesInput); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
     }
-    /*
-      Når brugeren klikker "Validate":
-      - Sætter moleculeValidated = true → nu må vi vise resultatet
-      - Kalder validate_smiles(...) → sætter inputValid til true/false
-    */
 
-    // Hvis der ER forsøgt valideret
 
     if (moleculeValidated) {
 
         if (inputValid ) {
-            // GRØN succes-tekst + liste over checks der er OK
             DrawTextEx(uiFont, "Valid SMILES", (Vector2){30, 180}, 30, 0, goodGreen);
 
             DrawTextEx(uiFont, "INPUT SIZE DOES NOT EXCEED MAX_INPUT OF 100", (Vector2){30, 230}, 15, 0, goodGreen);
@@ -372,10 +464,8 @@ void DrawTab_InputValidation()
             DrawTextEx(uiFont, "NO UNCLOSED RINGS", (Vector2){30, 290}, 15, 0, goodGreen);
         }
         else {
-            // RØD fejl-overskrift
             DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
             if (!inputValid) {
-                // Du tegner "INVALID SMILES:" én gang til her (det er lidt dobbelt)
                 DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
 
                 int y = 220;
@@ -394,9 +484,11 @@ void DrawTab_InputValidation()
         }
     }
     else {
-        // Før man har trykket validate:
         DrawTextEx(uiFont, "SMILES INPUT REQUIRED", (Vector2){30, 180}, 20, 2, BLACK);
     }
+
+   }
+
 
 }
 
@@ -1057,7 +1149,7 @@ void DrawTab_GraphView(){
 	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
 
 
-	draw_molecule(smilesInput, atomCount, adjacency_matrix,&cycle_count);
+	draw_molecule(smilesInput, atomCount, adjacency_matrix,cycle_count);
 
 
 }
