@@ -173,7 +173,10 @@ static int substructure_test = 0;
 
 
 // i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
-static bool graphComputed = false; 
+static bool graphComputed = false;
+
+// istedet for at vi skal lave atom_count osv i hver tab så laver vi det atomcount 
+static int atomcountstactic;
 
 /* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
 int runGUI() {
@@ -445,6 +448,7 @@ void DrawTab_InputValidation()
     {
         moleculeValidated = true;
         inputValid = validate_smiles(smilesInput);
+	atomcountstactic = get_atom_count(smilesInput);
 	graphComputed = false;
         val_flag = false;
         moleculeLoaded = false;
@@ -508,11 +512,11 @@ void DrawTab_AdjacencyMatrix()
     }
 
     // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
-    int atom_count = get_atom_count(smilesInput);
+    
     // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
-    int adjacency_matrix[atom_count][atom_count];
+    int adjacency_matrix[atomcountstactic][atomcountstactic];
 
-    create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
+    create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
 
 	/* Scroll opsætning til matrixen */ 
 	static Vector2 scroll = {0,0}; // static fordi den skal huskes mellem frames. dermed skal den kun initiliaserer en gang. Scroll vil løbende blive ændret, men skal beholdes mellem hver frame.  
@@ -531,8 +535,8 @@ void DrawTab_AdjacencyMatrix()
 	int cell_size = 30; 
 
 	// hvor stort indholdet potentielt er (matrix + lidt ekstra plads) 
-	int contentWidth = (atom_count + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst. 
-	int contentHeight = (atom_count +4) * cell_size +80; 
+	int contentWidth = (atomcountstactic + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst.
+	int contentHeight = (atomcountstactic +4) * cell_size +80;
 
 	// hvor stort indholdet potentielt kan være - hvis content er større end bounds -> scrollbars kommer frem 
 	Rectangle content = {
@@ -562,10 +566,10 @@ void DrawTab_AdjacencyMatrix()
 	 * */
 
 	// vi laver et array udelukkende med atom symboler i rækkefølge således vi kan paste det ind
-	char smile_symbols[atom_count]; 
-	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atom_count); 
+	char smile_symbols[atomcountstactic];
+	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atomcountstactic);
 	// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
-    for (int col = 0; col < atom_count; col++) {
+    for (int col = 0; col < atomcountstactic; col++) {
         DrawText(TextFormat("%c", smile_symbols[col]), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
             startX + (col +1)*cell_size, startY, 18, BLACK);
 
@@ -580,18 +584,18 @@ void DrawTab_AdjacencyMatrix()
 	
         DrawText(TextFormat("%c", smile_symbols[col]),
                  80 + (24*(col+1)),
-                 startY + (atom_count+2) * cell_size,
+                 startY + (atomcountstactic+2) * cell_size,
                  18,
                  DARKGRAY);
 	
 	DrawText(TextFormat("%d", col), 
 		90 + (24*(col+1)), 
-	  	startY+ 14 + (atom_count+2) * cell_size,
+	  	startY+ 14 + (atomcountstactic+2) * cell_size,
 	  	1,
 	  	DARKGRAY);
     }
     // Række-overskrifter
-    for (int row = 0; row < atom_count; row++) {
+    for (int row = 0; row < atomcountstactic; row++) {
         // Række-label
         DrawText(TextFormat("%c", smile_symbols[row]),
                  startX,
@@ -610,7 +614,7 @@ void DrawTab_AdjacencyMatrix()
 
 
         // Celler i rækken
-        for (int col = 0; col < atom_count; col++) {
+        for (int col = 0; col < atomcountstactic; col++) {
             int value = adjacency_matrix[row][col];
 
             DrawText(TextFormat("%d", value),
@@ -625,14 +629,14 @@ void DrawTab_AdjacencyMatrix()
    
     DrawTextEx(uiFont,
 	       "SMILES:",
-               (Vector2){30, startY + (atom_count + 2) * cell_size},
+               (Vector2){30, startY + (atomcountstactic + 2) * cell_size},
                18,
                2,
                DARKGRAY);
 
     DrawTextEx(uiFont,
-               TextFormat("Atoms: %d", atom_count),
-               (Vector2){30, startY+ 35 + (atom_count + 2) * cell_size},
+               TextFormat("Atoms: %d", atomcountstactic),
+               (Vector2){30, startY+ 35 + (atomcountstactic + 2) * cell_size},
                18,
                2,
                DARKGRAY);
@@ -665,7 +669,7 @@ void DrawTab_StabilityCheck()
 		screenH_stability - 260,
 	}; 
 	
-	int contentWidth_stability =atom_count * 90 +200; // bare en værdi jeg har trukket ud af hatten
+	int contentWidth_stability =atomcountstactic * 90 +200; // bare en værdi jeg har trukket ud af hatten
 	int content_height_stability = 200+200; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
 	
 	Rectangle content_stability = {
@@ -683,8 +687,8 @@ void DrawTab_StabilityCheck()
 	int y = bounds_stability.y + scroll_stability.y + 250; // 250 i margin til at starte med 
         int x = bounds_stability.x + scroll_stability.x + 100; 
 
-    int adj[atom_count][atom_count];
-    create_adjacency_matrix(smilesInput, atom_count, adj);
+    int adj[atomcountstactic][atomcountstactic];
+    create_adjacency_matrix(smilesInput, atomcountstactic, adj);
 
     // skal kun køre en gang, derfor sentinel TEST "C=O=C
     if (!val_flag && inputValid && !moleculeLoaded) {
@@ -1024,44 +1028,42 @@ void DrawTab_AlgorithmVisualization() {
     //hvis vi kommer hertil så er det fordi bfsRan er true.
     if (bfsRan) {
         // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        int atom_count = get_atom_count(smilesInput);
-        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
             bfsLog[0] = '\0';
             bfsCount = 0;
             bfsRan = false;
             return;
         }
-        if (atom_count > MAX_ATOMS) atom_count = MAX_ATOMS;  // sikkerhed
+        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
 
         // Lav VLA adjacency matrix
-        int adjacency_matrix[atom_count][atom_count];
-        int bfs[atom_count];
-        create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atom_count, adjacency_matrix, 0, bfs);
+        int adjacency_matrix[atomcountstactic][atomcountstactic];
+        int bfs[atomcountstactic];
+        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atomcountstactic, adjacency_matrix, 0, bfs);
     }
 
     if (dfsRan) {
         // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        int atom_count = get_atom_count(smilesInput);
-        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
             bfsLog[0] = '\0';
             bfsCount = 0;
             bfsRan = false;
             return;
         }
-        if (atom_count > MAX_ATOMS) atom_count = MAX_ATOMS;  // sikkerhed
+        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
 
         // Lav VLA adjacency matrix
-        int adjacency_matrix[atom_count][atom_count];
-        create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-        int dfsmatrix[atom_count];
-        int visited[atom_count];
-        int parent[atom_count];
+        int adjacency_matrix[atomcountstactic][atomcountstactic];
+        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+        int dfsmatrix[atomcountstactic];
+        int visited[atomcountstactic];
+        int parent[atomcountstactic];
 
 	int cycle_count = 0; 
-	int cycles[atom_count][2]; 
+	int cycles[atomcountstactic][2];
 		
-        for (int i = 0; i < atom_count; i++) {
+        for (int i = 0; i < atomcountstactic; i++) {
             parent[i] = -1;
         }
 
@@ -1079,8 +1081,8 @@ void DrawTab_AlgorithmVisualization() {
 
     	// Hvor meget tekst DFS max kan lave:
     	// groft: ~3 linjer per node + lidt ekstra
-    	int contentHeight = 3 * 20 * atom_count + 200;  // 20 px pr linje
-    	int contentWidth  = 900 + atom_count*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
+    	int contentHeight = 3 * 20 * atomcountstactic + 200;  // 20 px pr linje
+    	int contentWidth  = 900 + atomcountstactic*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
 
     	Rectangle content = (Rectangle){
         0, 0,
@@ -1134,29 +1136,29 @@ void DrawTab_GraphView(){
 		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
 	}
 
-	int adjacency_matrix[atomCount][atomCount];
+	int adjacency_matrix[atomcountstactic][atomcountstactic];
 
-	create_adjacency_matrix(smilesInput,atomCount,adjacency_matrix);
+	create_adjacency_matrix(smilesInput,atomcountstactic,adjacency_matrix);
 
-	int dfsmatrix[atomCount];
-	int visited[atomCount];
-	int parent[atomCount];
+	int dfsmatrix[atomcountstactic];
+	int visited[atomcountstactic];
+	int parent[atomcountstactic];
 	int cycle_count = 0;
-	int cycles[atomCount][2];
+	int cycles[atomcountstactic][2];
 	int startnode = 0; // eller hvad du bruger som root
 	int count = 0;
 
-	for (int i = 0; i < atomCount; i++) {
+	for (int i = 0; i < atomcountstactic; i++) {
     		visited[i] = 0;
     		parent[i] = -1;
 	}
 
 	if (!graphComputed){
-	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+	dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
 	graphComputed = true; 
 	}
 
-	draw_molecule(smilesInput, atomCount, adjacency_matrix,cycle_count);
+	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cycle_count);
 
 
 }
@@ -1217,7 +1219,7 @@ void Clear() {
     // end_flag = false; se linje 125
 
     smiles_input_size = 0;
-    atom_count = 0;
+    atomcountstactic = 0;
     smiles_size = 0;
 
     free(atomIndices);
