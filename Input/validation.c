@@ -46,7 +46,8 @@ void add_error(const char *msg, int pos) {
         error_count++; //increment til næste fejl
     }
 }
-void is_permitted(const char *input) {
+int is_permitted(const char *input) {
+    int errorCount = 0;
     smiles_input_size = 0;
     atom_count = 0;
 
@@ -62,11 +63,16 @@ void is_permitted(const char *input) {
 
         if (!match_found) { // loopet igennem alle karakter, men ikke fundet en gyldig karakter
             add_error("Illegal character\n", i+1);
-
+            errorCount++;
         }
     }
 
-
+    if (errorCount == 0) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 int count_smiles(const char *input) {
@@ -85,7 +91,8 @@ int count_atoms(const char *input) {
     }
     return count_of_atoms;
 }
-void closed_brackets(const char *input) {
+int closed_brackets(const char *input) {
+    int errorCount = 0;
     char stack_parantheses[MAX_INPUT]; //tallet kommer fra maxInput men har ik sat det ind endnu.
     char stack_brackets[MAX_INPUT];
     int top = -1;
@@ -97,6 +104,7 @@ void closed_brackets(const char *input) {
         }
         if (input[i] == ')' && stack_parantheses[top] != '(') {
             add_error("Closing parantheses has no matching opening parantheses \n", i+1);
+            errorCount++;
 
         }
         if (input[i] == ')' && stack_parantheses[top] == '(' ) {
@@ -111,6 +119,7 @@ void closed_brackets(const char *input) {
         if (input[i] == ']' && stack_brackets[top_brackets] != '[') {
 
             add_error("Closing bracket has no matching opening bracket \n", i+1);
+            errorCount++;
 
         }
         if (input[i] == ']' && stack_brackets[top_brackets] == '[' ) {
@@ -119,6 +128,7 @@ void closed_brackets(const char *input) {
 
         if (input[i] == ']' && input[i+1] == ']' ) {
             add_error("Two consecutive brackets \n", i+1);
+            errorCount++;
 
         }
 
@@ -126,15 +136,23 @@ void closed_brackets(const char *input) {
 
     if (top != -1) {
         add_error("Unmatched '(' remain", -1);
+        errorCount++;
     }
     if (top_brackets != -1) {
         add_error("Unmatched '[' remain", -1);
-
+        errorCount++;
     }
 
+    if (errorCount == 0) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
-void ring_closed(const char *input) {
+int ring_closed(const char *input) {
+    int errorCount = 0;
 
     int balance[10] = {0}; // til at holde styr på 9 mulige ringe(maksimum i SMILES)
 
@@ -144,43 +162,65 @@ void ring_closed(const char *input) {
             int d = input[i+1] - '0'; // d er sat til den digit vi har fundet efter en atom,
             if (d < 0 || d > 9) { // til at håndtere eg. 10, så vil digit = 0, derfor laver vi et hurtig tjek
                 add_error("Invalid ring digit",i+1);
+            }
 
-            }
-                balance[d] ^= 1; // XOR toggle
-                i++;
-            }
+            balance[d] ^= 1; // XOR toggle
+            i++;
         }
+    }
+
+
         for (int d = 0; d < 10; d++) {
             if (balance[d] != 0) {
+                errorCount++;
                 add_error("Ring not closed properly", -1);
 
             }
         }
 
+    if (errorCount == 0) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 
     }
 
-void misc_check(const char *input) {
+int misc_check(const char *input) {
+
+    int errorCount = 0;
 
     if (input[0] == '=' || input[0] == '-' || input[0] == '#') { // check hvis smiles tring enten begynder eller slutter med bindingsymbol
 
         add_error("Smiles string cannot contain a bond symbol as the first character\n", 1);
+        errorCount++;
 
     }
     if (input[smiles_input_size-1] == '=' || input[smiles_input_size-1] == '-' || input[smiles_input_size-1] == '#') {
         add_error("Smiles string cannot contain a bond symbol as the last character\n", smiles_input_size);
+        errorCount++;
 
     }
     for (int i = 0; i <smiles_input_size;i++) {
         if (input[i] == '(' && input[i+1] == ')') {
            add_error("Empty branch in SMILES string",-1);
+            errorCount++;
 
         }
         if (input[i] == '=' || input[i] == '-'|| input[i] == '#') {
             if (input[i+1] == '=' || input[i+1] == '-'|| input[i+1] == '#') {
                 add_error("Two consecutive bond symbols beginning at position", i+1);
+                errorCount++;
             }
         }
+    }
+
+    if (errorCount == 0) {
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 
