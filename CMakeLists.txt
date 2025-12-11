@@ -10,6 +10,7 @@ add_subdirectory(Input)                # validation
 add_subdirectory(adjacency_matrix)     # Adjacency_matrix
 add_subdirectory(GUI)
 add_subdirectory(toxicphore)
+add_subdirectory(smiles_nodefeature)
 #har været nødt til at kommenterer det ud fordi jeg på linux skal bruge find_package
 #set(RAYLIB_SRC_DIR "${CMAKE_SOURCE_DIR}/external/raylib")
 
@@ -37,6 +38,7 @@ target_link_libraries(main PRIVATE
   toxicphore
   gui
   raylib
+  SMILES_NODE
 )
 
 # Test

@@ -1,6 +1,6 @@
 
 add_executable(test_bfs test_BFS_matrix.c)
-target_link_libraries(test_bfs bfs_matrix mtest raylib)
+target_link_libraries(test_bfs bfs_matrix mtest raylib SMILES_NODE)
 discover_tests(test_bfs)
 
 
@@ -17,10 +17,14 @@ target_link_libraries(test_adj Adjacency_matrix mtest)
 discover_tests(test_adj)
 
 add_executable(test_val valence_test.c )
-target_link_libraries(test_val valenceCheck Adjacency_matrix validation)
+target_link_libraries(test_val mtest valenceCheck Adjacency_matrix validation)
 discover_tests(test_val)
 
 add_executable(test_input input_validation_test.c )
-target_link_libraries(test_input validation)
+target_link_libraries(test_input mtest validation)
 discover_tests(test_input)
+
+add_executable(test_smilesnode test_smilesnode.c)
+target_link_libraries(test_smilesnode mtest SMILES_NODE validation)
+discover_tests(test_smilesnode)
 
