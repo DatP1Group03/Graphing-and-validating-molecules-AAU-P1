@@ -21,14 +21,13 @@
 int main(void)
 {
 
-/*
     int run = 1;
     while (run == 1) {
         run = runGUI();
     }
-*/
 
 
+/*
 char smile[100];  
 
 printf("Please input SMILE string \n"); 
@@ -93,6 +92,7 @@ int toxicphore_test = toxicphore_function(smile, toxicphore);
 
 printf("toxicphore_test: %d \n", toxicphore_test); 
 
+*/
 
 /* hvis man vil kører fra terminal	
     int n = 6;

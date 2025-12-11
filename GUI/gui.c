@@ -171,6 +171,10 @@ og vi laver dermed en variabel ved navn uiFont. Denne skal anvendes når vi init
 static int pressedsubstructures = 0; 
 static int substructure_test = 0; 
 
+
+// i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
+static bool graphComputed = false; 
+
 /* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
 int runGUI() {
     /* Initwindow (fra RAYLIB) åbner et OS-vindue (x11/wayland på linux, win32 på windows, cocoa på macos). Initiliaserer opengl-context
@@ -441,7 +445,7 @@ void DrawTab_InputValidation()
     {
         moleculeValidated = true;
         inputValid = validate_smiles(smilesInput);
-
+	graphComputed = false;
         val_flag = false;
         moleculeLoaded = false;
 
@@ -1142,10 +1146,15 @@ void DrawTab_GraphView(){
 	int startnode = 0; // eller hvad du bruger som root
 	int count = 0;
 
+	for (int i = 0; i < atomCount; i++) {
+    		visited[i] = 0;
+    		parent[i] = -1;
+	}
 
-
+	if (!graphComputed){
 	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
-
+	graphComputed = true; 
+	}
 
 	draw_molecule(smilesInput, atomCount, adjacency_matrix,cycle_count);
 
@@ -1200,7 +1209,7 @@ void DrawTab_Substructures(){
 void Clear() {
     smilesInput[0] = '\0';
 	substructures_input[0] = '\0'; 
-
+	graphComputed = false; 
     inputValid = false;
     moleculeValidated = false;
     moleculeLoaded = false;
