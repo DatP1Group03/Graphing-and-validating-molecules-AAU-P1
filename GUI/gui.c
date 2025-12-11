@@ -18,6 +18,7 @@
 #include "toxicphore.h"
 #include "Graph_representation.h"
 #include "Graph_representation/Graph_representation.h"
+#include "smiles_nodefeature/SMILESNODE.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -186,7 +187,7 @@ int runGUI() {
      * sætter titlen i titellinjen vha. af string
      * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
 
-    InitWindow(1200, 1000, "S-SMILES");
+    InitWindow(1400, 1000, "S-SMILES");
     SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
     TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
     /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
@@ -222,6 +223,7 @@ int runGUI() {
         "Algorithms",
         "Graph View",
 	"Substructures",
+    	"Node feature",
     };
     int tabCount = sizeof(tabs) / sizeof(tabs[0]);  // finder hvor mange elementer vi har i vores char tabs array.
 
@@ -261,7 +263,7 @@ int runGUI() {
         GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
 
         // Definerer rektanglet (position og størrelse) for CLEAR-knappen
-        Rectangle clearTab = {1005, 20, 140, 30};
+        Rectangle clearTab = {1100, 20, 140, 30};
         /* rectangle er en struct i raylib som ser ud på følgende:
         * typedef struct Rectangle {
         float x;
@@ -319,7 +321,8 @@ int runGUI() {
             case 2: DrawTab_StabilityCheck(); break;
             case 3: DrawTab_AlgorithmVisualization(); break;
             case 4: DrawTab_GraphView(); break;
-	    case 5: DrawTab_Substructures(); break; 
+	    case 5: DrawTab_Substructures(); break;
+	    case 6: DrawTab_Nodefeature(); break; 
         }
 	
 
@@ -1206,6 +1209,121 @@ void DrawTab_Substructures(){
                18,
                2,
                DARKGRAY);
+}
+
+void DrawTab_Nodefeature() {
+
+    DrawText("Node Feature Matrix Tab", 30, 80, 25, BLACK);
+
+    if (!inputValid) {
+        DrawTextEx(uiFont,
+            "Please enter and validate a valid SMILES in the Input tab first.",
+            (Vector2){30,130}, 18, 2, RED);
+        return;
+    }
+
+    char atoms[MAX_ATOMS][3] = {0};
+    double node_matrix[MAX_ATOMS][MAX_FEATURES] = {0};
+
+    int n_atoms = parse_SMILES(smilesInput, atoms);
+    if (n_atoms <= 0) {
+        DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
+        return;
+    }
+
+    build_node_matrix(atoms, n_atoms, node_matrix);
+
+    // 2) Scroll opsætning (samme ide som adjacency)
+    static Vector2 scroll = {0,0};
+
+    int screenW = GetScreenWidth();
+    int screenH = GetScreenHeight();
+
+    Rectangle bounds = {
+        30,
+        140,
+        screenW - 60,
+        screenH - 180
+    };
+
+    // layout
+    const int cellW = 120;
+    const int cellH = 30;
+
+    const int leftLabelW = 160;               // plads til "idx + atom"
+    const int features = MAX_FEATURES;        // fx 3
+
+    int contentWidth  = leftLabelW + features * cellW + 80;
+    int contentHeight = (n_atoms + 2) * cellH + 120;  // + header + footer luft
+
+    Rectangle content = {0,0, (float)contentWidth, (float)contentHeight};
+    Rectangle view = {0};
+
+    GuiScrollPanel(bounds, "Node Feature Matrix", content, &scroll, &view);
+
+    BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+
+    float startX = bounds.x + 20 + scroll.x;
+    float startY = bounds.y + 40 + scroll.y;
+
+    // 3) Header row
+    DrawTextEx(uiFont, "Node", (Vector2){startX, startY}, 18, 2, BLACK);
+
+    // navne til features 
+    const char *featureNames[MAX_FEATURES] = {
+        "Atomic #",
+        "Valence",
+        "Aromatic"
+        // hvis MAX_FEATURES > 3
+    };
+
+    for (int f = 0; f < features; f++) {
+        const char *name = (f < 3) ? featureNames[f] : TextFormat("F%d", f);
+        DrawTextEx(uiFont,
+                   name,
+                   (Vector2){startX + leftLabelW + f * cellW, startY},
+                   18, 2, BLACK);
+    }
+
+    // streg under header
+    DrawLineEx((Vector2){startX, startY + 24},
+               (Vector2){startX + leftLabelW + features * cellW, startY + 24},
+               2, BLACK);
+
+    // 4) Rows
+    for (int i = 0; i < n_atoms; i++) {
+
+        // venstre label: "i  C"
+        DrawTextEx(uiFont,
+                   TextFormat("%d   %s", i, atoms[i]),
+                   (Vector2){startX, startY + (i + 1) * cellH},
+                   18, 2, BLACK);
+
+        // celler med features
+        for (int f = 0; f < features; f++) {
+            // dine features er gemt som double men reelt int -> print som int
+            int v = (int)node_matrix[i][f];
+
+            DrawTextEx(uiFont,
+                       TextFormat("%d", v),
+                       (Vector2){startX + leftLabelW + f * cellW + 10,
+                                 startY + (i + 1) * cellH},
+                       18, 2, BLACK);
+        }
+    }
+
+    // 5) Footer info
+    DrawTextEx(uiFont,
+               TextFormat("SMILES: %s", smilesInput),
+               (Vector2){startX, startY + (n_atoms + 2) * cellH + 10},
+               18, 2, DARKGRAY);
+
+    DrawTextEx(uiFont,
+               TextFormat("Atoms: %d", n_atoms),
+               (Vector2){startX, startY + (n_atoms + 2) * cellH + 35},
+               18, 2, DARKGRAY);
+
+    EndScissorMode();
 }
 
 void Clear() {
