@@ -29,7 +29,7 @@ void rotate_Vector(Vector2 *vector, double radians);
 
 void ring_rotation(Vector2 *vector, int size_of_ring);
 
-void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], const int *rings);
+void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count);
 
 void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count], char *SMILES);
 
@@ -39,7 +39,7 @@ void add_side_chain(S_list *Sidechains, int current_atom, Vector2 position_incre
 
 void remove_side_chain(S_list *Sidechains);
 
-void ringSize(char *SMILES, int ring_count, int *ring[ring_count]);
+void ringSize(char *SMILES, int ring_count, int ring[ring_count]);
 
 
 #endif //PROJEKT_KODE_GRAPH_REPRESENTATION_H

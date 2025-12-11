@@ -4,6 +4,7 @@
 
 #include "Graph_representation.h"
 
+
 void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count) {
     int SMILES_length = strlen(SMILES);
     S_list sideChains;
@@ -78,16 +79,22 @@ for (int i = 0; i<ring_count;i++) {
             add_side_chain(&sideChains, current_atom - 1, position_increment);
             //if (in_ring) {
             //} else {
+            if (ring_counter % 2 != 0) {
+                rotate_Vector(&position_increment, -PI / 2);
+            }
             rotate_Vector(&position_increment, PI / 2);
             // }
         }
         if (SMILES[i] == ')') {
             if (SMILES[i + 1] == '(') {
+                add_side_chain(&sideChains, sideChains.head->side_chain_head, sideChains.head->position_increment);
                 if (in_ring) {
                     rotate_Vector(&position_increment, -2 * PI / 3);
                 } else {
                     rotate_Vector(&position_increment, PI);
                 }
+i++;
+                start_of_sidechain = sideChains.head->side_chain_head;
             } else {
                 start_of_sidechain = sideChains.head->side_chain_head;
                 position_increment = sideChains.head->position_increment;
@@ -99,18 +106,13 @@ for (int i = 0; i<ring_count;i++) {
     Draw_atoms(atom_count, positions, adjacency_matrix, SMILES);
 }
 
-void ring_rotation(Vector2 *vector, int size_of_ring) {
-    double radians = 2 * PI / (double) size_of_ring;
-    rotate_Vector(vector, radians);
-}
-
 void ringSize(char *SMILES, int ring_count, int ring[ring_count]) {
     int visited_rings_numbers[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int visited_rings[ring_count];
 
-    for (int i = 0; i<ring_count;i++) {
-        visited_rings[i]=0;
-    }
+for (int i = 0; i<ring_count;i++) {
+    visited_rings[i]=0;
+}
 
     int count = 0;
     for (int i = 0; i < strlen(SMILES); i++) {
@@ -142,6 +144,11 @@ void ringSize(char *SMILES, int ring_count, int ring[ring_count]) {
     }
 }
 
+void ring_rotation(Vector2 *vector, int size_of_ring) {
+    double radians = 2 * PI / (double) size_of_ring;
+    rotate_Vector(vector, radians);
+}
+
 
 void rotate_Vector(Vector2 *vector, double radians) {
     double length = sqrt(pow(vector->x, 2) + pow(vector->y, 2));
@@ -158,7 +165,7 @@ void rotate_Vector(Vector2 *vector, double radians) {
     vector->y = sin(angle) * length;
 }
 
-void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count], char *SMILES) {
+void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count], char* SMILES) {
     Color color;
     for (int i = 0; i < atom_count; i++) {
         switch (adj[i][i]) {
@@ -177,15 +184,16 @@ void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_coun
             default:
                 color = BLACK;
                 DrawCircle(positions[i].x, positions[i].y,RADIUS, color);
-                int atom_count2 = 0;
-                int j = 0;
+                int atom_count2=0;
+                int j=0;
                 while (atom_count2 != i) {
+                    j++;
                     if (isalpha(SMILES[j])) {
                         atom_count2++;
                     }
                 }
-                char atom_name = SMILES[j];
-                DrawText(&atom_name, positions[i].x - 4, positions[i].y - 4, 15,WHITE);
+                char atom_name= SMILES[j];
+                DrawText(&atom_name,positions[i].x-4, positions[i].y-4,15,WHITE);
                 break;
         }
     }
@@ -203,21 +211,18 @@ void Draw_bonds(int atom_count, Vector2 positions[atom_count], int adj[atom_coun
                     DrawLineEx(positions[i], positions[j], 11,WHITE);
                     DrawLineEx(positions[i], positions[j], 1, BLACK);
                     Vector2 orthagonal_vector;
-                    orthagonal_vector.x = -((positions[i].y - positions[j].y) / 75 * 5);
-                    orthagonal_vector.y = (positions[i].x - positions[j].x) / 75 * 5;
-                    DrawLineEx(Vector2Add(positions[i], orthagonal_vector), Vector2Add(positions[j], orthagonal_vector),
-                               1, BLACK);
+                    orthagonal_vector.x = -((positions[i].y-positions[j].y)/75*5);
+                    orthagonal_vector.y = (positions[i].x-positions[j].x)/75*5;
+                    DrawLineEx(Vector2Add(positions[i],orthagonal_vector), Vector2Add(positions[j],orthagonal_vector), 1, BLACK);
                     break;
                 case 3:
                     DrawLineEx(positions[i], positions[j], 11,WHITE);
                     DrawLineEx(positions[i], positions[j], 1, BLACK);
                     Vector2 orthagonal_vector2;
-                    orthagonal_vector2.x = -((positions[i].y - positions[j].y) / 75 * 5);
-                    orthagonal_vector2.y = (positions[i].x - positions[j].x) / 75 * 5;
-                    DrawLineEx(Vector2Add(positions[i], orthagonal_vector2),
-                               Vector2Add(positions[j], orthagonal_vector2), 1, BLACK);
-                    DrawLineEx(Vector2Subtract(positions[i], orthagonal_vector2),
-                               Vector2Subtract(positions[j], orthagonal_vector2), 1, BLACK);
+                    orthagonal_vector2.x = -((positions[i].y-positions[j].y)/75*5);
+                    orthagonal_vector2.y = (positions[i].x-positions[j].x)/75*5;
+                    DrawLineEx(Vector2Add(positions[i],orthagonal_vector2), Vector2Add(positions[j],orthagonal_vector2), 1, BLACK);
+                    DrawLineEx(Vector2Subtract(positions[i],orthagonal_vector2), Vector2Subtract(positions[j],orthagonal_vector2), 1, BLACK);
                     break;
                 default:
                     break;
