@@ -7,8 +7,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "raylib.h"
-#define RAYGUI_IMPLEMENTATION
-#include "cmake-build-debug/_deps/raygui-src/src/raygui.h"
+#include "raygui.h"
 #include "raymath.h"
 
 #define BOND_LENGTH 45

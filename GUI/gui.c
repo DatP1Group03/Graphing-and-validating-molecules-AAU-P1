@@ -7,15 +7,13 @@
 
 #include <stdio.h>
 #include "gui.h"
-
 #include "raylib.h"
-#define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "bfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "dfs_matrix.h"
-#include "drawBoxedText.h"
+#include "draw_text_boxed.h"
 #include "valence_check.h"
 #include "toxicphore.h"
 #include "Graph_representation.h"
