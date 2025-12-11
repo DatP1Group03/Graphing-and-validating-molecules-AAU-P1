@@ -32,6 +32,7 @@ target_link_libraries(main
         dfs_matrix
         validation
         valenceCheck
+        drawTextBoxed
         Adjacency_matrix
 
         raylib
