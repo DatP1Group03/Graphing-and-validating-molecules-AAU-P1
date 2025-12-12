@@ -1,7 +1,7 @@
 #include "raygui.h"
 #include <raylib.h>
 
-// Hentet fra Raylib repo under examples.
+// Hentet fra Raylib repo under examples. Link: https://github.com/raysan5/raylib/blob/2853b28d6d51049543383e0854bb332b9f6ad900/examples/text/text_rectangle_bounds.c#L24
 void DrawTextBoxedSelectable(Font font, const char *text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint, int selectStart, int selectLength, Color selectTint, Color selectBackTint)
 {
     int length = TextLength(text);  // Total length in bytes of the text, scanned by codepoints in loop
