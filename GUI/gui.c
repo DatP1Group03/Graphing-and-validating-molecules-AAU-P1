@@ -18,6 +18,7 @@
 #include "toxicphore.h"
 #include "Graph_representation.h"
 #include "Graph_representation/Graph_representation.h"
+#include "smiles_nodefeature/SMILESNODE.h"
 
 /* Links indtil videre fundet:
  * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
@@ -139,6 +140,26 @@ static const char *smilesValidationText =
 	"scan uses simple stack logic to ensure that parentheses and brackets are "
 	"properly opened and closed,";
 
+bool show_adj_matrix_info = false; 
+bool show_stability_info = false; 
+bool show_algorithms_info = false; 
+bool show_graph_view_info = false; 
+bool show_substructures_info = false; 
+bool show_node_feature_info = false; 
+
+static const char *info_adj_matrix_text = 
+	"The SMILES-to_adjacency module builds a square matrix sixed by the atom count in the validated SMILES string. It scans the SMILES character by character and whenever it finds a new atom, it connects it to the correct previous atom (handling branches via parentheses). Ring numbers are tracked so the second occurence closes the ring by adding a bond between the stored atom and the current atom. Bond order is set from the bond symbol (-, =, #), defaulting to single bonds when no symbol is present. Finally, the matrix is mirrored to make is symmetric, since bonds are recorded in one direction during  the scan."; 
+static const char *info_stability_text = 
+	"The Stability Check visualizes the molecule’s valence validation. First, the program builds an adjacency matrix from the validated SMILES input. It then runs the valence check to compute, for each atom, how many bonds it has (including bond order) and whether this exceeds the allowed valence for that element. The result is displayed as a chain of atoms with their bond count and a VALID/ERROR label per atom. This makes it easy to see exactly where the structure becomes chemically invalid."; 
+static const char *info_algorithm_text =
+	"DFS does the following: DFS (Stands for Depth-First Search) goes along a path as deeply as possible along each branch before backtracking. DFS starts at a chosen node and visits it. It then looks at all the neighbours (all nodes it has connection to) of that node and follows the first neighbour it finds.From that neighbour, it again looks at its neighbours and continues going forward as long as there is an unvisited neighbour to follow. When it reaches a node where all neighbours have already been visited, it backtracks — meaning it goes back to the node it came from, and continues with the next neighbour there. DFS continues this pattern of:  1. go foward to an unvisited neighbour 2. backtrack when stuck 3. continue from the previous node, until all reachable nodes have been visited, we are now going to perform DFS on the molecule. BFS does the following:  BFS starts at a chosen node and visits it. Instead of going deep, BFS looks at all the neighbours of that node first. After visiting those neighbours, it then visits all the neighbours of those neighbours, and so on. You can think of BFS as exploring the graph layer by layer: 1. First the start node 2. Then all nodes directly connected to it  3. Then all nodes connected to those nodes 4. And so on, BFS keeps track of the nodes it still needs to visit in a queue, which ensures that the earliest discovered nodes are processed first. BFS continues this pattern of moving outward in waves until all reachable nodes have been visited.";
+static const char *info_graph_text = 
+	"This module converts a validated SMILES string into a visual graph representation of the molecule. Atom positions are computed sequentially, where rings are placed using rotational geometry and side chains are handled via temporary branching states. Bond connections and bond order are determined from the adjacency matrix. Finally, atoms are drawn as nodes and bonds as lines, producing a complete 2D molecular structure.";
+static const char *info_substructures_text =
+	" This process determines whether a smaller molecular structure exists within a larger molecule. Both structures are modeled as graphs, where atoms represent nodes and bonds represent edges. A depth-first search attempts to map each atom in the substructure to a unique atom in the molecule. The substructure is considered found only if atom types and bond connections match exactly."; 
+static const char *info_nodefeature_info =
+	"This process converts a validated SMILES string into a structured numerical representation of atoms. Each atom is identified and assigned chemical properties such as atomic number, valence, and aromaticity. These properties are stored row-wise in a node feature matrix, where each row represents one atom. The matrix is validated to ensure all features are chemically valid before being used in later steps.";
+
 
 static char smilesInput[256] = {0}; // måske skulle denne istedet for 256 så være defineret til maxinput??
 /* det er vigtigt at vores smilesinput er static, fordi at husk på at vores loop kører 0 gange i sekunder, og dermed
@@ -171,6 +192,13 @@ og vi laver dermed en variabel ved navn uiFont. Denne skal anvendes når vi init
 static int pressedsubstructures = 0; 
 static int substructure_test = 0; 
 
+
+// i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
+static bool graphComputed = false;
+
+// istedet for at vi skal lave atom_count osv i hver tab så laver vi det atomcount 
+static int atomcountstactic;
+
 /* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
 int runGUI() {
     /* Initwindow (fra RAYLIB) åbner et OS-vindue (x11/wayland på linux, win32 på windows, cocoa på macos). Initiliaserer opengl-context
@@ -179,7 +207,7 @@ int runGUI() {
      * sætter titlen i titellinjen vha. af string
      * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
 
-    InitWindow(1200, 1000, "S-SMILES");
+    InitWindow(1400, 1000, "S-SMILES");
     SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
     TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
     /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
@@ -215,6 +243,7 @@ int runGUI() {
         "Algorithms",
         "Graph View",
 	"Substructures",
+    	"Node feature",
     };
     int tabCount = sizeof(tabs) / sizeof(tabs[0]);  // finder hvor mange elementer vi har i vores char tabs array.
 
@@ -254,7 +283,7 @@ int runGUI() {
         GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
 
         // Definerer rektanglet (position og størrelse) for CLEAR-knappen
-        Rectangle clearTab = {1005, 20, 140, 30};
+        Rectangle clearTab = {1200, 20, 140, 30};
         /* rectangle er en struct i raylib som ser ud på følgende:
         * typedef struct Rectangle {
         float x;
@@ -312,7 +341,8 @@ int runGUI() {
             case 2: DrawTab_StabilityCheck(); break;
             case 3: DrawTab_AlgorithmVisualization(); break;
             case 4: DrawTab_GraphView(); break;
-	    case 5: DrawTab_Substructures(); break; 
+	    case 5: DrawTab_Substructures(); break;
+	    case 6: DrawTab_Nodefeature(); break; 
         }
 	
 
@@ -327,14 +357,14 @@ void DrawTab_InputValidation()
 {
 
 
-    GuiToggle((Rectangle){830, 550, 60, 25}, "?", &showValidationInfo);
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &showValidationInfo);
 
     if(showValidationInfo){
         DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
         DrawTextBoxed(
         uiFont,
         smilesValidationText,
-        (Rectangle){ 40, 140, 820, 280 }, // x, y, width, height
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
         30,
         2,
         true,
@@ -441,7 +471,8 @@ void DrawTab_InputValidation()
     {
         moleculeValidated = true;
         inputValid = validate_smiles(smilesInput);
-
+	atomcountstactic = get_atom_count(smilesInput);
+	graphComputed = false;
         val_flag = false;
         moleculeLoaded = false;
 
@@ -492,8 +523,6 @@ void DrawTab_InputValidation()
 
 void DrawTab_AdjacencyMatrix()
 {
-    // Overskrift til tabben
-    DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
 
     // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
     if (!inputValid) {
@@ -503,12 +532,29 @@ void DrawTab_AdjacencyMatrix()
         return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
     }
 
-    // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
-    int atom_count = get_atom_count(smilesInput);
-    // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
-    int adjacency_matrix[atom_count][atom_count];
+	
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_adj_matrix_info);
 
-    create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
+    if(show_adj_matrix_info){
+        DrawTextEx(uiFont,"Adjacency matrix Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_adj_matrix_text,
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+	} else {
+    // Overskrift til tabben
+    DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
+    // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
+    
+    // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
+    int adjacency_matrix[atomcountstactic][atomcountstactic];
+
+    create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
 
 	/* Scroll opsætning til matrixen */ 
 	static Vector2 scroll = {0,0}; // static fordi den skal huskes mellem frames. dermed skal den kun initiliaserer en gang. Scroll vil løbende blive ændret, men skal beholdes mellem hver frame.  
@@ -527,8 +573,8 @@ void DrawTab_AdjacencyMatrix()
 	int cell_size = 30; 
 
 	// hvor stort indholdet potentielt er (matrix + lidt ekstra plads) 
-	int contentWidth = (atom_count + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst. 
-	int contentHeight = (atom_count +4) * cell_size +80; 
+	int contentWidth = (atomcountstactic + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst.
+	int contentHeight = (atomcountstactic +4) * cell_size +80;
 
 	// hvor stort indholdet potentielt kan være - hvis content er større end bounds -> scrollbars kommer frem 
 	Rectangle content = {
@@ -558,10 +604,10 @@ void DrawTab_AdjacencyMatrix()
 	 * */
 
 	// vi laver et array udelukkende med atom symboler i rækkefølge således vi kan paste det ind
-	char smile_symbols[atom_count]; 
-	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atom_count); 
+	char smile_symbols[atomcountstactic];
+	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atomcountstactic);
 	// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
-    for (int col = 0; col < atom_count; col++) {
+    for (int col = 0; col < atomcountstactic; col++) {
         DrawText(TextFormat("%c", smile_symbols[col]), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
             startX + (col +1)*cell_size, startY, 18, BLACK);
 
@@ -576,18 +622,18 @@ void DrawTab_AdjacencyMatrix()
 	
         DrawText(TextFormat("%c", smile_symbols[col]),
                  80 + (24*(col+1)),
-                 startY + (atom_count+2) * cell_size,
+                 startY + (atomcountstactic+2) * cell_size,
                  18,
                  DARKGRAY);
 	
 	DrawText(TextFormat("%d", col), 
 		90 + (24*(col+1)), 
-	  	startY+ 14 + (atom_count+2) * cell_size,
+	  	startY+ 14 + (atomcountstactic+2) * cell_size,
 	  	1,
 	  	DARKGRAY);
     }
     // Række-overskrifter
-    for (int row = 0; row < atom_count; row++) {
+    for (int row = 0; row < atomcountstactic; row++) {
         // Række-label
         DrawText(TextFormat("%c", smile_symbols[row]),
                  startX,
@@ -606,7 +652,7 @@ void DrawTab_AdjacencyMatrix()
 
 
         // Celler i rækken
-        for (int col = 0; col < atom_count; col++) {
+        for (int col = 0; col < atomcountstactic; col++) {
             int value = adjacency_matrix[row][col];
 
             DrawText(TextFormat("%d", value),
@@ -621,21 +667,38 @@ void DrawTab_AdjacencyMatrix()
    
     DrawTextEx(uiFont,
 	       "SMILES:",
-               (Vector2){30, startY + (atom_count + 2) * cell_size},
+               (Vector2){30, startY + (atomcountstactic + 2) * cell_size},
                18,
                2,
                DARKGRAY);
 
     DrawTextEx(uiFont,
-               TextFormat("Atoms: %d", atom_count),
-               (Vector2){30, startY+ 35 + (atom_count + 2) * cell_size},
+               TextFormat("Atoms: %d", atomcountstactic),
+               (Vector2){30, startY+ 35 + (atomcountstactic + 2) * cell_size},
                18,
                2,
                DARKGRAY);
 	EndScissorMode(); 
+	}
 }
 void DrawTab_StabilityCheck()
 {
+	
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_stability_info);
+
+    if(show_stability_info){
+        DrawTextEx(uiFont,"Stability info Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_stability_text,
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+        }
+    else {
     DrawTextEx(uiFont,"Stability Check Tab", (Vector2){30, 80,}, 30,2, BLACK);
     int radius =30;
     int dist_to_increment = 3*radius;
@@ -661,7 +724,7 @@ void DrawTab_StabilityCheck()
 		screenH_stability - 260,
 	}; 
 	
-	int contentWidth_stability =atom_count * 90 +200; // bare en værdi jeg har trukket ud af hatten
+	int contentWidth_stability =atomcountstactic * 90 +200; // bare en værdi jeg har trukket ud af hatten
 	int content_height_stability = 200+200; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
 	
 	Rectangle content_stability = {
@@ -679,8 +742,8 @@ void DrawTab_StabilityCheck()
 	int y = bounds_stability.y + scroll_stability.y + 250; // 250 i margin til at starte med 
         int x = bounds_stability.x + scroll_stability.x + 100; 
 
-    int adj[atom_count][atom_count];
-    create_adjacency_matrix(smilesInput, atom_count, adj);
+    int adj[atomcountstactic][atomcountstactic];
+    create_adjacency_matrix(smilesInput, atomcountstactic, adj);
 
     // skal kun køre en gang, derfor sentinel TEST "C=O=C
     if (!val_flag && inputValid && !moleculeLoaded) {
@@ -730,6 +793,7 @@ void DrawTab_StabilityCheck()
         }
 
 		EndScissorMode(); 
+	}
 }
 
 
@@ -989,6 +1053,24 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
 
 
 void DrawTab_AlgorithmVisualization() {
+
+
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_algorithms_info);
+
+    if(show_algorithms_info){
+        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_algorithm_text,
+        (Rectangle){ 40, 140, 820, 900 }, // x, y, width, height
+        22,
+        2,
+        true,
+        DARKGRAY
+         );
+        }
+    else {
+
     //tegner blot titlen
     DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
 
@@ -1020,44 +1102,42 @@ void DrawTab_AlgorithmVisualization() {
     //hvis vi kommer hertil så er det fordi bfsRan er true.
     if (bfsRan) {
         // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        int atom_count = get_atom_count(smilesInput);
-        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
             bfsLog[0] = '\0';
             bfsCount = 0;
             bfsRan = false;
             return;
         }
-        if (atom_count > MAX_ATOMS) atom_count = MAX_ATOMS;  // sikkerhed
+        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
 
         // Lav VLA adjacency matrix
-        int adjacency_matrix[atom_count][atom_count];
-        int bfs[atom_count];
-        create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atom_count, adjacency_matrix, 0, bfs);
+        int adjacency_matrix[atomcountstactic][atomcountstactic];
+        int bfs[atomcountstactic];
+        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atomcountstactic, adjacency_matrix, 0, bfs);
     }
 
     if (dfsRan) {
         // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        int atom_count = get_atom_count(smilesInput);
-        if (atom_count <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
             bfsLog[0] = '\0';
             bfsCount = 0;
             bfsRan = false;
             return;
         }
-        if (atom_count > MAX_ATOMS) atom_count = MAX_ATOMS;  // sikkerhed
+        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
 
         // Lav VLA adjacency matrix
-        int adjacency_matrix[atom_count][atom_count];
-        create_adjacency_matrix(smilesInput, atom_count, adjacency_matrix);
-        int dfsmatrix[atom_count];
-        int visited[atom_count];
-        int parent[atom_count];
+        int adjacency_matrix[atomcountstactic][atomcountstactic];
+        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+        int dfsmatrix[atomcountstactic];
+        int visited[atomcountstactic];
+        int parent[atomcountstactic];
 
 	int cycle_count = 0; 
-	int cycles[atom_count][2]; 
+	int cycles[atomcountstactic][2];
 		
-        for (int i = 0; i < atom_count; i++) {
+        for (int i = 0; i < atomcountstactic; i++) {
             parent[i] = -1;
         }
 
@@ -1075,8 +1155,8 @@ void DrawTab_AlgorithmVisualization() {
 
     	// Hvor meget tekst DFS max kan lave:
     	// groft: ~3 linjer per node + lidt ekstra
-    	int contentHeight = 3 * 20 * atom_count + 200;  // 20 px pr linje
-    	int contentWidth  = 900 + atom_count*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
+    	int contentHeight = 3 * 20 * atomcountstactic + 200;  // 20 px pr linje
+    	int contentWidth  = 900 + atomcountstactic*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
 
     	Rectangle content = (Rectangle){
         0, 0,
@@ -1116,12 +1196,31 @@ void DrawTab_AlgorithmVisualization() {
     EndScissorMode();
 
     }
+	}
 
 
 }
 
 
 void DrawTab_GraphView(){
+	
+	
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_graph_view_info);
+
+    if(show_graph_view_info){
+        DrawTextEx(uiFont,"Graph Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_graph_text,
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+        }
+    else {
+
     DrawText("Graph View Tab", 30, 80, 25, BLACK);
 	if (!inputValid) {
 		DrawTextEx(uiFont,
@@ -1130,29 +1229,51 @@ void DrawTab_GraphView(){
 		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
 	}
 
-	int adjacency_matrix[atomCount][atomCount];
+	int adjacency_matrix[atomcountstactic][atomcountstactic];
 
-	create_adjacency_matrix(smilesInput,atomCount,adjacency_matrix);
+	create_adjacency_matrix(smilesInput,atomcountstactic,adjacency_matrix);
 
-	int dfsmatrix[atomCount];
-	int visited[atomCount];
-	int parent[atomCount];
+	int dfsmatrix[atomcountstactic];
+	int visited[atomcountstactic];
+	int parent[atomcountstactic];
 	int cycle_count = 0;
-	int cycles[atomCount][2];
+	int cycles[atomcountstactic][2];
 	int startnode = 0; // eller hvad du bruger som root
 	int count = 0;
 
+	for (int i = 0; i < atomcountstactic; i++) {
+    		visited[i] = 0;
+    		parent[i] = -1;
+	}
 
+	if (!graphComputed){
+	dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+	graphComputed = true; 
+	}
 
-	dfs_matrix(startnode,atomCount,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cycle_count);
 
-
-	draw_molecule(smilesInput, atomCount, adjacency_matrix,cycle_count);
-
-
+	}
 }
 
 void DrawTab_Substructures(){
+
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_substructures_info);
+
+    if(show_substructures_info){
+        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_substructures_text,
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+        }
+    else {
+
 	DrawText("Find Substructures (toxicphores) in the molecule", 30, 80, 25, BLACK);
 
     // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
@@ -1195,12 +1316,145 @@ void DrawTab_Substructures(){
                18,
                2,
                DARKGRAY);
+	}
+}
+
+void DrawTab_Nodefeature() {
+
+
+    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_node_feature_info);
+
+    if(show_node_feature_info){
+        DrawTextEx(uiFont,"Node feature Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextBoxed(
+        uiFont,
+        info_nodefeature_info,
+        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+        30,
+        2,
+        true,
+        DARKGRAY
+         );
+        }
+    else {
+    DrawText("Node Feature Matrix Tab", 30, 80, 25, BLACK);
+
+    if (!inputValid) {
+        DrawTextEx(uiFont,
+            "Please enter and validate a valid SMILES in the Input tab first.",
+            (Vector2){30,130}, 18, 2, RED);
+        return;
+    }
+
+    char atoms[MAX_ATOMS][3] = {0};
+    double node_matrix[MAX_ATOMS][MAX_FEATURES] = {0};
+
+    int n_atoms = parse_SMILES(smilesInput, atoms);
+    if (n_atoms <= 0) {
+        DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
+        return;
+    }
+
+    build_node_matrix(atoms, n_atoms, node_matrix);
+
+    // 2) Scroll opsætning (samme ide som adjacency)
+    static Vector2 scroll = {0,0};
+
+    int screenW = GetScreenWidth();
+    int screenH = GetScreenHeight();
+
+    Rectangle bounds = {
+        30,
+        140,
+        screenW - 60,
+        screenH - 180
+    };
+
+    // layout
+    const int cellW = 120;
+    const int cellH = 30;
+
+    const int leftLabelW = 160;               // plads til "idx + atom"
+    const int features = MAX_FEATURES;        // fx 3
+
+    int contentWidth  = leftLabelW + features * cellW + 80;
+    int contentHeight = (n_atoms + 2) * cellH + 120;  // + header + footer luft
+
+    Rectangle content = {0,0, (float)contentWidth, (float)contentHeight};
+    Rectangle view = {0};
+
+    GuiScrollPanel(bounds, "Node Feature Matrix", content, &scroll, &view);
+
+    BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+
+    float startX = bounds.x + 20 + scroll.x;
+    float startY = bounds.y + 40 + scroll.y;
+
+    // 3) Header row
+    DrawTextEx(uiFont, "Node", (Vector2){startX, startY}, 18, 2, BLACK);
+
+    // navne til features 
+    const char *featureNames[MAX_FEATURES] = {
+        "Atomic #",
+        "Valence",
+        "Aromatic"
+        // hvis MAX_FEATURES > 3
+    };
+
+    for (int f = 0; f < features; f++) {
+        const char *name = (f < 3) ? featureNames[f] : TextFormat("F%d", f);
+        DrawTextEx(uiFont,
+                   name,
+                   (Vector2){startX + leftLabelW + f * cellW, startY},
+                   18, 2, BLACK);
+    }
+
+    // streg under header
+    DrawLineEx((Vector2){startX, startY + 24},
+               (Vector2){startX + leftLabelW + features * cellW, startY + 24},
+               2, BLACK);
+
+    // 4) Rows
+    for (int i = 0; i < n_atoms; i++) {
+
+        // venstre label: "i  C"
+        DrawTextEx(uiFont,
+                   TextFormat("%d   %s", i, atoms[i]),
+                   (Vector2){startX, startY + (i + 1) * cellH},
+                   18, 2, BLACK);
+
+        // celler med features
+        for (int f = 0; f < features; f++) {
+            // dine features er gemt som double men reelt int -> print som int
+            int v = (int)node_matrix[i][f];
+
+            DrawTextEx(uiFont,
+                       TextFormat("%d", v),
+                       (Vector2){startX + leftLabelW + f * cellW + 10,
+                                 startY + (i + 1) * cellH},
+                       18, 2, BLACK);
+        }
+    }
+
+    // 5) Footer info
+    DrawTextEx(uiFont,
+               TextFormat("SMILES: %s", smilesInput),
+               (Vector2){startX, startY + (n_atoms + 2) * cellH + 10},
+               18, 2, DARKGRAY);
+
+    DrawTextEx(uiFont,
+               TextFormat("Atoms: %d", n_atoms),
+               (Vector2){startX, startY + (n_atoms + 2) * cellH + 35},
+               18, 2, DARKGRAY);
+
+    EndScissorMode();
+	}
 }
 
 void Clear() {
     smilesInput[0] = '\0';
 	substructures_input[0] = '\0'; 
-
+	graphComputed = false; 
     inputValid = false;
     moleculeValidated = false;
     moleculeLoaded = false;
@@ -1208,7 +1462,7 @@ void Clear() {
     // end_flag = false; se linje 125
 
     smiles_input_size = 0;
-    atom_count = 0;
+    atomcountstactic = 0;
     smiles_size = 0;
 
     free(atomIndices);

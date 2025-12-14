@@ -196,8 +196,8 @@ void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_coun
                         atom_count2++;
                     }
                 }
-                char atom_name= SMILES[j];
-                DrawText(&atom_name,positions[i].x-4, positions[i].y-4,15,WHITE);
+                char atom_name_str[2] = {SMILES[j], '\0'};
+                DrawText(atom_name_str,positions[i].x-4, positions[i].y-4,15,WHITE);
                 break;
         }
     }

@@ -16,4 +16,5 @@ target_link_libraries(gui PUBLIC
   toxicphore
   Graph_representation
   raylib
+  SMILES_NODE
 )

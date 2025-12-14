@@ -19,6 +19,7 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
 void DrawTab_Substructures();
 void DrawTab_AlgorithmVisualization();
 void DrawTab_GraphView();
+void DrawTab_Nodefeature();
 void Clear();
 int runGUI();
 
