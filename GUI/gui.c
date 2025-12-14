@@ -199,6 +199,9 @@ static bool graphComputed = false;
 // istedet for at vi skal lave atom_count osv i hver tab så laver vi det atomcount 
 static int atomcountstactic;
 
+// variables used in drawtab_graph
+static int cached_cycle_count = 0; 
+
 /* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
 int runGUI() {
     /* Initwindow (fra RAYLIB) åbner et OS-vindue (x11/wayland på linux, win32 på windows, cocoa på macos). Initiliaserer opengl-context
@@ -1247,11 +1250,13 @@ void DrawTab_GraphView(){
 	}
 
 	if (!graphComputed){
-	dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
-	graphComputed = true; 
+		cycle_count = 0; 
+		dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+		cached_cycle_count = cycle_count;
+		graphComputed = true; 
 	}
 
-	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cycle_count);
+	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count);
 
 	}
 }
