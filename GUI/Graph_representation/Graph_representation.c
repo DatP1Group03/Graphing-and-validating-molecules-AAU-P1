@@ -12,7 +12,7 @@
 
 
 
-void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count) {
+void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count, double node_matrix[atom_count][3]) {
 	printf("%d \n", ring_count);
     int SMILES_length = strlen(SMILES);
     S_list sideChains;
@@ -114,7 +114,7 @@ i++;
         }
     }
     Draw_bonds(atom_count, positions, adjacency_matrix);
-    Draw_atoms(atom_count, positions, adjacency_matrix, SMILES);
+    Draw_atoms(atom_count, positions, node_matrix, SMILES);
 }
 
 void ringSize(char *SMILES, int ring_count, int ring[ring_count]) {
@@ -176,10 +176,11 @@ void rotate_Vector(Vector2 *vector, double radians) {
     vector->y = sin(angle) * length;
 }
 
-void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count], char* SMILES) {
+void Draw_atoms(int atom_count, Vector2 positions[atom_count], double node_matrix[atom_count][3], char* SMILES) {
     Color color;
     for (int i = 0; i < atom_count; i++) {
-        switch (adj[i][i]) {
+	int node_type = (int)node_matrix[i][0]; 
+        switch (node_type) {
             case 6:
                 color = BLACK;
                 DrawCircle(positions[i].x, positions[i].y,RADIUS, color);
@@ -199,11 +200,11 @@ void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_coun
                 int j=0;
                 while (atom_count2 != i) {
                     j++;
-                    if (isalpha(SMILES[j])) {
+                    if (isalpha(SMILES[i])) {
                         atom_count2++;
                     }
                 }
-                char atom_name_str[2] = {SMILES[j], '\0'};
+                char atom_name_str[2] = {SMILES[i], '\0'};
                 DrawText(atom_name_str,positions[i].x-4, positions[i].y-4,15,WHITE);
                 break;
         }

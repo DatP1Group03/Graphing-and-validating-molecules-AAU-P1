@@ -28,9 +28,9 @@ void rotate_Vector(Vector2 *vector, double radians);
 
 void ring_rotation(Vector2 *vector, int size_of_ring);
 
-void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count);
+void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count, double node_matrix[atom_count][3]);
 
-void Draw_atoms(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count], char *SMILES);
+void Draw_atoms(int atom_count, Vector2 positions[atom_count], double node_matrix[atom_count][3], char *SMILES);
 
 void Draw_bonds(int atom_count, Vector2 positions[atom_count], int adj[atom_count][atom_count]);
 

@@ -1231,7 +1231,25 @@ void DrawTab_GraphView(){
 			(Vector2){30,160}, 18,2, RED);
 		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
 	}
+	// Explaining the color of atom
+	int legend_y = 93; 
+	int x = 260; 
+	int gap_Circle_to_text = 4; 
+	int gap_group = 75; 
+	// C (black) 
+	DrawCircle(x,legend_y, RADIUS, BLACK);
+	DrawText(":C", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+	
+	// O (red) 
+	x += gap_group;
+	DrawCircle(x,legend_y, RADIUS, RED);
+	DrawText(":O", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
 
+	// N (blue) 
+	x += gap_group;
+	DrawCircle(x,legend_y, RADIUS, BLUE);
+	DrawText(":N", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+	
 	int adjacency_matrix[atomcountstactic][atomcountstactic];
 
 	create_adjacency_matrix(smilesInput,atomcountstactic,adjacency_matrix);
@@ -1256,7 +1274,16 @@ void DrawTab_GraphView(){
 		graphComputed = true; 
 	}
 
-	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count);
+    	char atoms[MAX_ATOMS][3] = {0};
+    	double node_matrix[atomcountstactic][MAX_FEATURES];
+    	int n_atoms = parse_SMILES(smilesInput, atoms);
+	if (n_atoms <= 0) {
+        	DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
+        	return;
+    	}
+
+    	build_node_matrix(atoms, n_atoms, node_matrix);
+	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix);
 
 	}
 }
@@ -1430,7 +1457,6 @@ void DrawTab_Nodefeature() {
 
         // celler med features
         for (int f = 0; f < features; f++) {
-            // dine features er gemt som double men reelt int -> print som int
             int v = (int)node_matrix[i][f];
 
             DrawTextEx(uiFont,
