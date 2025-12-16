@@ -192,7 +192,9 @@ og vi laver dermed en variabel ved navn uiFont. Denne skal anvendes når vi init
 static int pressedsubstructures = 0; 
 static int substructure_test = 0; 
 
-
+// følgende er til vores stabilitycheck
+static Symbol *molecule = NULL; 
+static smile_size = 0; 
 // i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
 static bool graphComputed = false;
 
@@ -494,6 +496,7 @@ void DrawTab_InputValidation()
             DrawTextEx(uiFont, "VALID PARENTHESES", (Vector2){30, 250}, 15, 0, goodGreen);
             DrawTextEx(uiFont, "NO ILLEGAL CHARACTERS", (Vector2){30, 270}, 15, 0, goodGreen);
             DrawTextEx(uiFont, "NO UNCLOSED RINGS", (Vector2){30, 290}, 15, 0, goodGreen);
+				smile_size = count_smiles(smilesInput);
         }
         else {
             DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
@@ -747,15 +750,14 @@ void DrawTab_StabilityCheck()
 
     int adj[atomcountstactic][atomcountstactic];
     create_adjacency_matrix(smilesInput, atomcountstactic, adj);
-
     // skal kun køre en gang, derfor sentinel TEST "C=O=C
     if (!val_flag && inputValid && !moleculeLoaded) {
-        run_valence_check(count_atoms(smilesInput), smilesInput,adj);
+        run_valence_check(&molecule, smile_size, atomcountstactic, smilesInput, adj);
         val_flag = true;
         moleculeLoaded = true;
     }
         if (moleculeLoaded && molecule != NULL && inputValid) {
-           for (int i = 0; i < smiles_input_size; i++) {
+           for (int i = 0; i < smile_size; i++) {
             Color atomColor = BLACK;
 
             if (isalpha(molecule[i].atomChar)){
@@ -1061,7 +1063,7 @@ void DrawTab_AlgorithmVisualization() {
     GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_algorithms_info);
 
     if(show_algorithms_info){
-        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+        DrawTextEx(uiFont,"Algorithm Process", (Vector2){30,80},30,2, BLACK);
         DrawTextBoxed(
         uiFont,
         info_algorithm_text,
@@ -1496,10 +1498,7 @@ void Clear() {
     atomcountstactic = 0;
     smiles_size = 0;
 
-    free(atomIndices);
-    free(molecule);
-    atomIndices = NULL;
-    molecule = NULL;
+    free_valency_memory(); 
 
     bfsRan = false;
     dfsRan = false;

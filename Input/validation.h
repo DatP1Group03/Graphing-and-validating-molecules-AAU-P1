@@ -23,4 +23,5 @@ int get_error_count(void);
 const char* get_error_message(int index);
 int get_error_position(int index);
 
+int count_smiles(const char *input);
 #endif
