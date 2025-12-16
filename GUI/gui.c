@@ -194,7 +194,7 @@ static int substructure_test = 0;
 
 // følgende er til vores stabilitycheck
 static Symbol *molecule = NULL; 
-static smile_size = 0; 
+static int smile_size = 0; 
 // i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
 static bool graphComputed = false;
 
@@ -1498,7 +1498,7 @@ void Clear() {
     atomcountstactic = 0;
     smiles_size = 0;
 
-    free_valency_memory(); 
+    free_valency_memory(&molecule); 
 
     bfsRan = false;
     dfsRan = false;
