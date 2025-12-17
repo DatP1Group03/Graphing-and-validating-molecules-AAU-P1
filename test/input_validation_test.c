@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "mtest.h"
 #include <string.h>
 #include "validation.h"
 
@@ -14,57 +14,74 @@ static void reset_state(void) {
 	}
 }
 
-void test_illegal_character(void) {
+ // Verifies that the validator rejects SMILES containing an unsupported character ('$'),
+// returns failure (0), and reports exactly one error with the expected message.
+TEST_CASE(test_illegal_character,{
 	reset_state();
 	int result = validate_smiles("C$C", &error_count_test, errors_test);
-	assert(result == 0);
-	assert(error_count_test == 1);
-	assert(strcmp(get_error_message(0, &error_count_test, errors_test), "Illegal character\n") == 0);
-}
+	CHECK_EQ_INT(0, result);
+	CHECK_EQ_INT(1, error_count_test);
+	CHECK_EQ_INT(0, strcmp(get_error_message(0, &error_count_test, errors_test), "Illegal character\n"));
+})
 
-void test_unmatched_parentheses(void) { 
+// Ensures that an opening parenthesis without a matching closing parenthesis is detected as an error
+// (validation fails and at least one error is recorded).
+TEST_CASE(test_unmatched_parentheses,{ 
 	reset_state();
 	int result = validate_smiles("C(C", &error_count_test, errors_test);
-	assert(result == 0);
-	assert(error_count_test >= 1);
-}
+	CHECK_EQ_INT(0, result);
+	int is_error_over_one = 0; 
+	if (error_count_test >= 1){ is_error_over_one =1;}
+	CHECK_EQ_INT(1, is_error_over_one);
+})
 
-void test_unmatched_brackets(void) {
+// Ensures that an opening bracket without a matching closing bracket is detected as an error
+// (validation fails and at least one error is recorded).
+TEST_CASE(test_unmatched_brackets,{
 	reset_state();
 	int result = validate_smiles("C[NH3", &error_count_test, errors_test);
-	assert(result == 0);
-	assert(error_count_test >= 1);
-}
+	CHECK_EQ_INT(0, result);
+	int is_error_over_one = 0; 
+	if (error_count_test >= 1){ is_error_over_one =1;}
+	CHECK_EQ_INT(1, is_error_over_one);
+})
 
-void test_two_bond_symbols(void) {
+// Checks that consecutive bond symbols ("==") are treated as invalid syntax
+// (validation fails and at least one error is recorded).
+TEST_CASE(test_two_bond_symbols,{
 	reset_state();
 	int result = validate_smiles("C==C", &error_count_test, errors_test);
-	assert(result == 0);
-	assert(error_count_test >= 1);
-}
+	CHECK_EQ_INT(0, result);
+	int is_error_over_one = 0; 
+	if (error_count_test >= 1){ is_error_over_one =1;}
+	CHECK_EQ_INT(1, is_error_over_one);
+})
 
-void test_ring_not_closed(void) {
+// Checks that a ring digit without a matching closing digit (e.g., "C1...") is detected
+// (validation fails and at least one error is recorded).
+TEST_CASE(test_ring_not_closed,{
 	reset_state();
 	int result = validate_smiles("C1CC", &error_count_test, errors_test);
-	assert(result == 0);
-	assert(error_count_test >= 1);
-}
+	CHECK_EQ_INT(0, result);
+	int is_error_over_one = 0; 
+	if (error_count_test >= 1){ is_error_over_one =1;}
+	CHECK_EQ_INT(1, is_error_over_one);
+})
 
-void test_valid_smiles(void) {
+// Confirms that a syntactically valid SMILES string is accepted:
+// validation succeeds (1) and no errors are recorded.
+TEST_CASE(test_valid_smiles,{
 	reset_state();
 	int result = validate_smiles("C=C(O)C", &error_count_test, errors_test);
-	assert(result == 1);
-	assert(error_count_test == 0);
-}
+	CHECK_EQ_INT(1, result);
+	CHECK_EQ_INT(0, error_count_test);
+})
 
-int main(void)
-{
-    test_illegal_character();
-    test_unmatched_parentheses();
-    test_unmatched_brackets();
-    test_two_bond_symbols();
-    test_ring_not_closed();
-    test_valid_smiles();
-
-    return 0;
-}
+MAIN_RUN_TESTS(
+    test_illegal_character,
+    test_unmatched_parentheses,
+    test_unmatched_brackets,
+    test_two_bond_symbols,
+    test_ring_not_closed,
+    test_valid_smiles,
+)

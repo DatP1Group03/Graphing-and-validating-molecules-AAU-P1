@@ -23,7 +23,7 @@ TEST_CASE(smilesnode_COC, {
     int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
-    build_node_matrix(atoms, count, matrix);
+    build_node_matrix(atoms, count, matrix, &error_count_test, errors_test);
 
     const int expected[3][MAX_FEATURES] = {
         {6, 4, 0},
@@ -47,7 +47,7 @@ TEST_CASE(smilesnode_CCC, {
     int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
-    build_node_matrix(atoms, count, matrix);
+    build_node_matrix(atoms, count, matrix, &error_count_test, errors_test);
 
     const int expected[3][MAX_FEATURES] = {
         {6, 4, 0},
@@ -71,7 +71,7 @@ TEST_CASE(smilesnode_O, {
     int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(1, count);
 
-    build_node_matrix(atoms, count, matrix);
+    build_node_matrix(atoms, count, matrix, &error_count_test, errors_test);
 
     const int expected[1][MAX_FEATURES] = {
         {8, 2, 0}
@@ -91,7 +91,7 @@ TEST_CASE(smilesnode_CNO, {
     int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
-    build_node_matrix(atoms, count, matrix);
+    build_node_matrix(atoms, count, matrix, &error_count_test, errors_test);
 
     const int expected[3][MAX_FEATURES] = {
         {6, 4, 0},

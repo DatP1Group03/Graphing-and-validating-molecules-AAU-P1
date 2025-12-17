@@ -122,7 +122,6 @@ Color softRed   = (Color){ 200, 60, 60, 255 };
 Color grayText  = DARKGRAY; //DARKGRAY er en foruddefineret farve fra raylib, og i raylib er den prædefineret til #define DARKGRAY (Color){ 80, 80, 80, 255 }
 
 //bfs
-#define MAX_ATOMS 128
 static int bfsOrder[MAX_ATOMS];
 static int bfsCount = 0;
 static bool bfsRan = false;
@@ -181,7 +180,7 @@ static bool moleculeValidated= false; //fortæller om valideringen ER blevet udf
 //
 //validation
 static int error_count; 
-static Error errors[]; 
+static Error errors[MAX_ERRORS]; 
 
 Font uiFont; /* Font er en struct type som er defineret i raylib og ser sådan her ud:
 typedef struct Font {
@@ -1290,7 +1289,7 @@ void DrawTab_GraphView(){
         	return;
     	}
 
-    	build_node_matrix(atoms, n_atoms, node_matrix);
+    	build_node_matrix(atoms, n_atoms, node_matrix, &error_count, errors);
 	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix);
 
 	}
@@ -1395,7 +1394,7 @@ void DrawTab_Nodefeature() {
         return;
     }
 
-    build_node_matrix(atoms, n_atoms, node_matrix);
+    build_node_matrix(atoms, n_atoms, node_matrix, &error_count, errors);
 
     // 2) Scroll opsætning (samme ide som adjacency)
     static Vector2 scroll = {0,0};

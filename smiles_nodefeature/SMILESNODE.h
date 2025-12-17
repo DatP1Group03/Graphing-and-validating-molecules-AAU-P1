@@ -16,7 +16,7 @@
 
 int parse_SMILES (const char *smiles, char atoms[MAX_ATOMS][3], int *error_count, Error errors[]);
 
-void build_node_matrix(char atoms[MAX_ATOMS][3], int n_atoms, double matrix[MAX_ATOMS][MAX_FEATURES]);
+void build_node_matrix(char atoms[MAX_ATOMS][3], int n_atoms, double matrix[MAX_ATOMS][MAX_FEATURES], int *error_count, Error error[]);
 
 int validate_features(double matrix[MAX_ATOMS][MAX_FEATURES], int n_atoms, int *error_count, Error errors[]);
 
