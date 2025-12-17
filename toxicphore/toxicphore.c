@@ -3,7 +3,14 @@
 #include <stdio.h>
 #include "Adjacency_matrix.h"
 
-/* Vi læser her smilen og indsætter karakteren i et array således vi altid kan tjekke ud fra index hvad atom det er */ 
+
+/*
+ * Reads the SMILES string and extracts atom symbols into an array.
+ * Each uppercase character is treated as an atom symbol.
+ * This allows constant-time lookup of atom type by index during matching.
+ *
+ * Returns the number of atoms found.
+ */
 int fill_atom_symbols_from_smile( const char *smiles, char atom_symbol[], int max_atoms){
 	int count =0; 
 
@@ -16,18 +23,38 @@ int fill_atom_symbols_from_smile( const char *smiles, char atom_symbol[], int ma
 	}
 	return count; 
 }
-/*følgende funktion ved sidekæder. jeg har ræssoneret mig frem til at det er fordi at hvis den når en node hvor der ingen flere naboer er at gå til, så fejler den hele DFS'en. Istedetfor at gå tilbage og prøve en anden gren jeg tror at jeg vil lave den om således den er node-baseret fremfor kant-baseret. */ 
-/* Følgende funktion tager en startnode (her kaldt for t), og så traverse den hvad noden er forbundet til i adj_tox. Samtidig så forsøger den at finde et tilsvarende match i adj_main (som er vores hovedmolekyle). 
- * n_tox er antallet af atomer i tox smile. Kan fås vha. get_atom_count funktionen fra adjacency
- * adj_tox er vores adjacencey matrix for toxicphore (eller det molekyle vi gerne vil finde)
- * tox_symbol er vores array vi har lavet vha. af funktionen fill_atom_symbols_from_smile 
- * n_main er antallet af atomer i vores smile. 
- * adj_main er vores molekyle originalt. 
- * main_symbol er vores array lavet vha. af funktionen fill_atom_symbol_from_smile
- * mapping_tox_to_main er vores array som ved at inputte index fra tox molekylet giver noden som er tilsvarende i vores hovedmolekyle. dette array fylder vi med -1 inden vi kører dfs idet at vi så ved at -1 betyder at der ikke er blevet mappet endnu, og en værdi forskellig derfra betyder der er blevet mappet. 
- * used_main er alle de noder som vi har brugt indtil videre i vores hovedmolekyle. Initialiseres til 0. Idet at det anvendes vha. af at hvis der index er brugt så sættes blot 1. altså used_main[2] = 1 skal læses som noden 2 i adj_main[2] er blevet brugt og dermed er used_main sand. 
- * count = hvor mange noder vi har fundet. Hvis antallet er det samme som n_tox betyder vi har fundet toxicphere molekylet i hovedmolekylet. '
- * */ 
+
+/*
+ * Edge-based DFS approach for toxicophore matching (legacy attempt).
+ *
+ * This function performs a depth-first traversal of the toxicophore graph
+ * starting from node t and simultaneously attempts to find a corresponding
+ * subgraph in the main molecule.
+ *
+ * The mapping must satisfy:
+ *  - Injectivity: no two toxicophore nodes may map to the same main node.
+ *  - Atom type consistency: tox_symbol[u] == main_symbol[f(u)].
+ *  - Edge preservation: if two nodes are connected in the toxicophore,
+ *    their mapped nodes must also be connected with the same bond order.
+ *
+ * Parameters:
+ *  - t: current toxicophore node
+ *  - n_tox: number of atoms in the toxicophore
+ *  - adj_tox: adjacency matrix of the toxicophore
+ *  - tox_symbol: atom symbols of the toxicophore
+ *  - n_main: number of atoms in the main molecule
+ *  - adj_main: adjacency matrix of the main molecule
+ *  - main_symbol: atom symbols of the main molecule
+ *  - mapping_tox_to_main: maps toxicophore nodes to main molecule nodes
+ *  - used_main: marks which main nodes are already used
+ *  - parent: previous toxicophore node (used to avoid trivial backtracking)
+ *  - count: number of toxicophore nodes matched so far
+ *
+ * Note:
+ * This approach struggles with side chains because failure in one branch
+ * may prematurely terminate the DFS instead of backtracking and trying
+ * alternative branches. It is therefore replaced by a node-based approach.
+ */
 int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox], int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main], int mapping_tox_to_main[n_tox], int used_main[n_main], int parent, int count) {
 	// vi forsøger at finde f: noder i tox --> noder i main 
 	// f er injektiv, ingen to noder i tox må pege på samme node i main
@@ -88,18 +115,24 @@ int dfs_toxicphore(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_s
 	printf("og vi returner (fail) fordi count != n_tox hvis vi er nået hertil  \n"); 
 	return 0; 
 }
-// funktion hvor vi istedet for at finde en nabo til t vil finde istedet for finde tilsvarende molekyle.  
-// t ER IKKE MATCHED ENDNU
-/* vælg en tox-node der ikke er matchet endnu
 
-prøv alle main-noder
 
-tjek alle constraints mod deres naboer
-
-backtrack hvis det fejler
-
-fortsæt ellers til næste tox-node
-*/
+/*
+ * Node-based DFS approach for toxicophore matching.
+ *
+ * Instead of traversing edges, this function assigns toxicophore nodes
+ * one by one to main molecule nodes.
+ *
+ * For a given toxicophore node t:
+ *  - All unused main molecule nodes are tested as candidates.
+ *  - Atom types must match.
+ *  - All already-mapped neighbors of t must be connected to the candidate
+ *    with the same bond order.
+ *
+ * The function backtracks if a partial mapping leads to a contradiction.
+ *
+ * Returns 1 if a complete valid mapping is found, otherwise 0.
+ */
 int dfs_tox_nodebased(int t, int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox], int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main], int mapping_tox_to_main[n_tox], int used_main[n_main]){
 	
 	if (t == n_tox){
@@ -162,8 +195,19 @@ int dfs_tox_nodebased(int t, int n_tox, const int adj_tox[n_tox][n_tox], char to
 
 }
 
-/* følgende funktion har det formål at vi indtil i vores dfs funktion har gået ud fra at vi allerede havde mappet en forbindelse mellem vores node t og en node i vores hovedmolekyle. 
-* Denne funktion laver først vores to arrays den til at map og til at holde øje med om de er brugt. initiliaserer dem til deres korrekt start værdier og så forsøger at finde kandidater som skal være starten. Det vil sige at den tjekker hele vores main_symbol array om atomtypen i starten af vores toxicphere overhovedet findes. Den kører denne indtil den har fundet et match, og den løber alle mulige kandidater igennem. Det vil sige hvis vi har en streng CCCC=O og vi leder efter C=O så gennemløber den faktisk alle C og tjekker vha. DFS om der er en mulig kandidat. Således misser vi ikke noget ved at antage noget. */ 
+/*
+ * Attempts to locate the toxicophore graph as a subgraph of the main molecule.
+ *
+ * This function initializes the mapping and used-node arrays and then tries
+ * all possible starting positions in the main molecule that match the first
+ * toxicophore atom.
+ *
+ * For each valid starting candidate, a node-based DFS search is performed.
+ * This ensures that no potential matches are missed by making assumptions
+ * about the starting position.
+ *
+ * Returns 1 if the toxicophore is found in the main molecule, otherwise 0.
+ */
 int find_toxicphore_in_main(
     int n_tox, const int adj_tox[n_tox][n_tox], char tox_symbol[n_tox],
     int n_main, const int adj_main[n_main][n_main], char main_symbol[n_main]
@@ -208,7 +252,17 @@ int find_toxicphore_in_main(
     return 0; //ingen match
 }
 
-/*følgende funktion tager vores to smile strenge og laver alle variabler der er nødvendigt for at finde toxicpheret i molekylet. Dette gør det blot nemt at køre funktionen */ 
+/*
+ * High-level wrapper function for toxicophore detection.
+ *
+ * This function:
+ *  - Builds adjacency matrices for both the main molecule and the toxicophore.
+ *  - Extracts atom symbol arrays from both SMILES strings.
+ *  - Validates consistency between atom counts and extracted symbols.
+ *  - Initiates the toxicophore search.
+ *
+ * Returns 1 if the toxicophore is found, otherwise 0.
+ */
 int toxicphore_function(char *smile, char *toxicphore) {
 	int n_main = get_atom_count(smile);
 	int adj_main[n_main][n_main];
