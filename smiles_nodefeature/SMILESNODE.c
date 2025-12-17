@@ -1,35 +1,31 @@
 // Kode skrevet af momar25aau
 //
-#include <stdio.h>
-#include <string.h>
 #include "SMILESNODE.h"
-#include <ctype.h>
-#include "../Input/validation.h"
+#include "validation.h"
 
 
 static int read_atom_symbol(const char *s, char out[3]) {
-if (s[0] == '\0') return 0;
-    if (isupper((unsigned char)s[0])) {
-        out[0] = s[0];
-        out[1] = '\0';
-        out[2] = '\0';
-                if (islower((unsigned char)s[1])) {
-                    out[1] = s[1];
-                    out[2] = '\0';
-                    return 2;
-                }
-        return 1;
-    } else if (islower((unsigned)s[0])) {
-        out[0] = s[0];
-        out[1] = '\0';
-        out[2] = '\0';
-        return 1;
-    }
-    return 0;
-
-
+	if (s[0] == '\0') return 0;
+	if (isupper((unsigned char)s[0])) {
+		out[0] = s[0];
+		out[1] = '\0';
+		out[2] = '\0';
+		if (islower((unsigned char)s[1])) {
+			out[1] = s[1];
+			out[2] = '\0';
+			return 2;
+		}
+		return 1;
+	} else if (islower((unsigned)s[0])) {
+		out[0] = s[0];
+		out[1] = '\0';
+		out[2] = '\0';
+		return 1;
+	}
+	return 0;
 }
-int parse_SMILES(const char *smiles, char atoms[MAX_ATOMS][3]) {
+
+int parse_SMILES(const char *smiles, char atoms[MAX_ATOMS][3], int *error_count, Error errors[]) {
 int count = 0;
     int i = 0;
     while (smiles[i] != '\0' && count < MAX_ATOMS) {
@@ -55,7 +51,7 @@ if (consumed > 0) {
         i++;
     }
 if (count == 0) {
-    add_error("No atoms found in SMILES", 0);
+    add_error("No atoms found in SMILES", 0, error_count, errors);
     return 0;
 }
 return count;
@@ -114,13 +110,11 @@ matrix[i][2] = 0.0;
     }
 
 }
-int validate_features(double matrix[MAX_ATOMS][MAX_FEATURES], int n_atoms) {
+int validate_features(double matrix[MAX_ATOMS][MAX_FEATURES], int n_atoms, int *error_count, Error errors[]) {
     int ok = 1;
     for (int i = 0; i < n_atoms; i++) {
         if (matrix[i][0] == 0 || matrix[i][1] == 0) {
-            char buf[128];
-            printf("Error: Invalid feature found in colummn %d.\n", i);
-            add_error(buf, i+1);
+            add_error("Error: Invalid feature found", i+1, error_count, errors);
             ok = 0;
         }
     }

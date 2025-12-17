@@ -9,7 +9,6 @@
 #include "gui.h"
 #include "raylib.h"
 #include "raygui.h"
-#include "bfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "dfs_matrix.h"
@@ -177,6 +176,13 @@ static bool val_flag = false; // dette "flag" skal sikre at valence check kun k�
 // static bool end_flag = false; anvendes ikke i koden? har kommenteret den ud, men kan kun finde den i clear hvor den igen sættes til false
 static bool moleculeLoaded = false; // denne fortæller om molekylet er generet og klar, anvendes som state i stability, algorithm og graph view.
 static bool moleculeValidated= false; //fortæller om valideringen ER blevet udført (ikke om den var gyldig!)
+
+//
+//
+//validation
+static int error_count; 
+static Error errors[]; 
+
 Font uiFont; /* Font er en struct type som er defineret i raylib og ser sådan her ud:
 typedef struct Font {
 int baseSize;
@@ -383,7 +389,7 @@ void DrawTab_InputValidation()
         }
         else {
             moleculeValidated = true;
-            inputValid = validate_smiles(smilesInput);
+            inputValid = validate_smiles(smilesInput, &error_count, errors);
 
             val_flag = false;
             moleculeLoaded = false;
@@ -423,7 +429,7 @@ void DrawTab_InputValidation()
             DrawLineV(beginPos, b3, BLACK);
             DrawLineV(beginPos, b4, BLACK);
 
-            if (is_permitted(smilesInput)) {
+            if (is_permitted(smilesInput, &error_count, errors)) {
                 DrawTextEx(uiFont, "PERMITTED CHARACTERS",
                            (Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, GREEN);
             } else {
@@ -432,7 +438,7 @@ void DrawTab_InputValidation()
             }
 
 
-            if (closed_brackets(smilesInput)) {
+            if (closed_brackets(smilesInput, &error_count,errors)) {
                 DrawTextEx(uiFont, "BALANCED PARENTHESES",
                            (Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, GREEN);
             } else {
@@ -441,7 +447,7 @@ void DrawTab_InputValidation()
             }
 
 
-            if (ring_closed(smilesInput)) {
+            if (ring_closed(smilesInput, &error_count, errors)) {
                 DrawTextEx(uiFont, "RING STRUCTURE VALID",
                            (Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, GREEN);
             } else {
@@ -450,7 +456,7 @@ void DrawTab_InputValidation()
             }
 
 
-            if (misc_check(smilesInput)) {
+            if (misc_check(smilesInput, &error_count, errors)) {
                 DrawTextEx(uiFont, "MISC STRUCTURE VALID",
                            (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, GREEN);
             } else {
@@ -458,7 +464,7 @@ void DrawTab_InputValidation()
                            (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, RED);
             }
         }
-        inputValid = validate_smiles(smilesInput);
+        inputValid = validate_smiles(smilesInput, &error_count, errors);
     }
 
 
@@ -475,14 +481,14 @@ void DrawTab_InputValidation()
     if (GuiButton((Rectangle){470, 130, 100, 25}, "Validate"))
     {
         moleculeValidated = true;
-        inputValid = validate_smiles(smilesInput);
+        inputValid = validate_smiles(smilesInput, &error_count, errors);
 	atomcountstactic = get_atom_count(smilesInput);
 	graphComputed = false;
         val_flag = false;
         moleculeLoaded = false;
 
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
-        inputValid = validate_smiles(smilesInput); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
+        inputValid = validate_smiles(smilesInput, &error_count, errors); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
         TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
     }
 
@@ -504,13 +510,12 @@ void DrawTab_InputValidation()
                 DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
 
                 int y = 220;
-                int cnt = get_error_count();
 
-                for (int i = 0; i < cnt; i++) {
+                for (int i = 0; i < error_count; i++) {
                     char buffer[256];
                     snprintf(buffer, sizeof(buffer), "%s (position %d)",
-                             get_error_message(i),
-                             get_error_position(i));
+                             get_error_message(i, &error_count, errors),
+                             get_error_position(i, &error_count, errors));
 
                     DrawTextEx(uiFont, buffer, (Vector2){30, y}, 20, 2, RED);
                     y += 40;
@@ -779,14 +784,14 @@ void DrawTab_StabilityCheck()
                 else {
                     DrawTextEx(uiFont,"VALID", (Vector2){x-15, y+80,}, 15,2, DARKGREEN);
                 }
-                if (i < smiles_input_size - 1 && (molecule[i+1].atomChar == '-' || isalpha(molecule[i+1].atomChar))) {
+                if (i < count_smiles(smilesInput) - 1 && (molecule[i+1].atomChar == '-' || isalpha(molecule[i+1].atomChar))) {
                     DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
                 }
-                if (i != smiles_input_size-1 && molecule[i+1].atomChar == '=') {
+                if (i != count_smiles(smilesInput)-1 && molecule[i+1].atomChar == '=') {
                     DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
                     DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
                 }
-                if (i != smiles_input_size-1 && molecule[i+1].atomChar == '#') {
+                if (i != count_smiles(smilesInput)-1 && molecule[i+1].atomChar == '#') {
                     DrawLine(x+radius,y+4,x+dist_to_increment-radius,y+4,BLACK);
                     DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
                     DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
@@ -1182,6 +1187,7 @@ void DrawTab_AlgorithmVisualization() {
 
     	int startnode = 0; // eller hvad du bruger som root
     	int count = 0;
+	int atom_count = count_atoms(smilesInput);
 
     	count = dfs_matrix_onlyforgui(
         	startnode,
@@ -1278,7 +1284,7 @@ void DrawTab_GraphView(){
 
     	char atoms[MAX_ATOMS][3] = {0};
     	double node_matrix[atomcountstactic][MAX_FEATURES];
-    	int n_atoms = parse_SMILES(smilesInput, atoms);
+    	int n_atoms = parse_SMILES(smilesInput, atoms, &error_count, errors);
 	if (n_atoms <= 0) {
         	DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
         	return;
@@ -1383,7 +1389,7 @@ void DrawTab_Nodefeature() {
     char atoms[MAX_ATOMS][3] = {0};
     double node_matrix[MAX_ATOMS][MAX_FEATURES] = {0};
 
-    int n_atoms = parse_SMILES(smilesInput, atoms);
+    int n_atoms = parse_SMILES(smilesInput, atoms, &error_count, errors);
     if (n_atoms <= 0) {
         DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
         return;
@@ -1494,9 +1500,7 @@ void Clear() {
     val_flag = false;
     // end_flag = false; se linje 125
 
-    smiles_input_size = 0;
     atomcountstactic = 0;
-    smiles_size = 0;
 
     free_valency_memory(&molecule); 
 

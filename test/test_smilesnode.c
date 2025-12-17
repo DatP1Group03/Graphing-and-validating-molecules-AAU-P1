@@ -1,13 +1,26 @@
 
 #include "mtest.h"
 #include "SMILESNODE.h"
+#include "validation.h"
+
+static int error_count_test = 0; 
+static Error errors_test[MAX_ERRORS]; 
+
+static void reset_state(void){
+	error_count_test = 0; 
+	for (int i = 0; i < MAX_ERRORS; i++) {
+		errors_test[i].message[0] = '\0';
+		errors_test[i].position = 0;
+	}
+}
 
 TEST_CASE(smilesnode_COC, {
+	reset_state(); 
     const char *smiles = "COC";
     char atoms[MAX_ATOMS][3];
     double matrix[MAX_ATOMS][MAX_FEATURES];
 
-    int count = parse_SMILES(smiles, atoms);
+    int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
     build_node_matrix(atoms, count, matrix);
@@ -26,11 +39,12 @@ TEST_CASE(smilesnode_COC, {
 })
 
 TEST_CASE(smilesnode_CCC, {
+	reset_state();
     const char *smiles = "CCC";
     char atoms[MAX_ATOMS][3];
     double matrix[MAX_ATOMS][MAX_FEATURES];
 
-    int count = parse_SMILES(smiles, atoms);
+    int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
     build_node_matrix(atoms, count, matrix);
@@ -49,11 +63,12 @@ TEST_CASE(smilesnode_CCC, {
 })
 
 TEST_CASE(smilesnode_O, {
+	reset_state();
     const char *smiles = "O";
     char atoms[MAX_ATOMS][3];
     double matrix[MAX_ATOMS][MAX_FEATURES];
 
-    int count = parse_SMILES(smiles, atoms);
+    int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(1, count);
 
     build_node_matrix(atoms, count, matrix);
@@ -68,11 +83,12 @@ TEST_CASE(smilesnode_O, {
 })
 
 TEST_CASE(smilesnode_CNO, {
+	reset_state();
     const char *smiles = "CNO";
     char atoms[MAX_ATOMS][3];
     double matrix[MAX_ATOMS][MAX_FEATURES];
 
-    int count = parse_SMILES(smiles, atoms);
+    int count = parse_SMILES(smiles, atoms, &error_count_test, errors_test);
     CHECK_EQ_INT(3, count);
 
     build_node_matrix(atoms, count, matrix);
