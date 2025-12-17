@@ -13,7 +13,9 @@ static void reset_state(void){
 		errors_test[i].position = 0;
 	}
 }
-
+// Tests parsing and node feature extraction for a simple C–O–C molecule.
+// Verifies that three atoms are detected and that carbon and oxygen
+// are assigned correct atomic numbers, valences, and aromatic flags.
 TEST_CASE(smilesnode_COC, {
 	reset_state(); 
     const char *smiles = "COC";
@@ -38,6 +40,9 @@ TEST_CASE(smilesnode_COC, {
     }
 })
 
+// Tests a linear chain of carbon atoms (CCC).
+// Ensures that multiple identical atom types are parsed correctly
+// and that each carbon node receives the same feature values.
 TEST_CASE(smilesnode_CCC, {
 	reset_state();
     const char *smiles = "CCC";
@@ -62,6 +67,9 @@ TEST_CASE(smilesnode_CCC, {
     }
 })
 
+// Tests the minimal case of a single-atom SMILES string.
+// Verifies that a single oxygen atom is correctly parsed and
+// assigned the correct node features.
 TEST_CASE(smilesnode_O, {
 	reset_state();
     const char *smiles = "O";
@@ -82,6 +90,9 @@ TEST_CASE(smilesnode_O, {
     }
 })
 
+// Tests parsing and feature extraction for multiple different atom types.
+// Confirms that carbon, nitrogen, and oxygen are each assigned their
+// correct atomic numbers and valence values in the node feature matrix.
 TEST_CASE(smilesnode_CNO, {
 	reset_state();
     const char *smiles = "CNO";
