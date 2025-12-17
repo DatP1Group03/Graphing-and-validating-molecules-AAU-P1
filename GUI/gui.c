@@ -1188,7 +1188,55 @@ void DrawTab_GraphView(){
 			return;
 		}
 		build_node_matrix(atoms, n_atoms, node_matrix, &error_count, errors);
-		draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix);
+
+		/* The following is for scrolling purpose (see adjacency and nodetab for same layout */ 
+		static Vector2 scroll_graph = {0,0}; 
+		int screenW = GetScreenWidth();
+		int screenH = GetScreenHeight(); 
+
+		Rectangle bounds = {
+			30,
+			140,
+			screenW - 60,
+			screenH - 180}; 
+
+		// content must just be "big enough" - we here use 5000x5000. remember we can only see a smaller rectangular "bounds" area visible on screen
+		Rectangle content = {
+			0, 0, 
+			5000, 5000}; 
+
+		Rectangle view = {0}; 
+
+		/* in raygui, the scroll vector does NOT movethe view. instead it offsets the content behind the view. A negative scroll value moves the content left or up. 
+		 * If scroll is initialized to (0,0), the view will start in the top-left corner of the content, meaning the user can only scroll down or right. This is problematic 
+		 * for our graph_view since in rings it can extend in any direction the rotate function decides. 
+		 * To offset this we initialize the scroll vector so that the visible view starts centered in the content area. 
+		 * I have come to the conclusion that center is 
+		 * content_center = (contentWidth /2, contentHeight / 2) 
+		 * view center = (bounds.width /2, bounds.height/2) 
+		 *
+		 * The scroll offset is set tothe negative difference between these centers. this places the "camera" at the center of the content, allowing the user to scroll up,down, left and right.
+		 * This initialization must only run once (or whenwe press clear or input a new molecule) 
+		 * */
+		static int scroll_init = 0; 
+		// initialise only once - start "centered" 
+		if (!scroll_init) {
+			scroll_graph.x = -(5000/2 - bounds.width/2);
+			scroll_graph.y = -(5000/2 - bounds.height/2);
+			scroll_init = 1; 
+		}
+
+
+		GuiScrollPanel(bounds, "Graph view", content, &scroll_graph, &view);
+		BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+
+		Vector2 origin = {
+			view.x + (5000/2) + scroll_graph.x, view.y + (5000/2) + scroll_graph.y }; 
+
+
+		draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix, origin);
+
+		EndScissorMode();
 	}
 }
 

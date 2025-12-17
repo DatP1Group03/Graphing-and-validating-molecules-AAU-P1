@@ -17,7 +17,7 @@
  *  - whether we are currently inside a ring,
  *  - sidechain branches using a stack (S_list).
  */
-void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count, double node_matrix[atom_count][3]) {
+void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count][atom_count], int ring_count, double node_matrix[atom_count][3], Vector2 origin) {
 	printf("%d \n", ring_count);
 	int SMILES_length = strlen(SMILES);
 	S_list sideChains;
@@ -42,8 +42,8 @@ void draw_molecule(char *SMILES, int atom_count, int adjacency_matrix[atom_count
 
 	Vector2 positions[atom_count];
 
-	positions[0].x = 200;
-	positions[0].y = 200;
+	positions[0].x = origin.x;
+	positions[0].y = origin.y;
 
 	Vector2 position_increment;
 	position_increment.x = RADIUS * 2 + BOND_LENGTH;
