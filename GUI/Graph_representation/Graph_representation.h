@@ -9,6 +9,9 @@
 #include "raylib.h"
 #include "raygui.h"
 #include "raymath.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 #define BOND_LENGTH 45
 #define  RADIUS 15
