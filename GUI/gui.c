@@ -2,14 +2,29 @@
 // Created by magnus on 29/11/2025.
 //
 
-//Windows
-// #include "external/raylib/src/raylib.h"
+
+/*
+ * GUI main module (raylib + raygui)
+ *
+ * This file contains the global UI state used across multiple tabs:
+ *  - Input validation
+ *  - Adjacency matrix view
+ *  - Stability/valence check view
+ *  - Graph traversal (BFS/DFS) view
+ *  - Graph rendering view
+ *  - Substructure/toxicophore detection view
+ *  - Node feature matrix view
+ *
+ * Important note about state:
+ * raylib redraws the entire screen every frame inside the main loop, so any values
+ * that must persist between frames (input buffers, toggle states, cached results)
+ * are stored as static/global variables.
+ */
 
 #include <stdio.h>
 #include "gui.h"
 #include "raylib.h"
 #include "raygui.h"
-#include "bfs_matrix.h"
 #include "Input/validation.h"
 #include "Adjacency_matrix.h"
 #include "dfs_matrix.h"
@@ -20,110 +35,46 @@
 #include "Graph_representation/Graph_representation.h"
 #include "smiles_nodefeature/SMILESNODE.h"
 
-/* Links indtil videre fundet:
- * https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
- * https://www.raylib.com/cheatsheet/cheatsheet.html
- * https://github.com/raysan5/raygui/blob/master/src/raygui.h
- * */
+/*
+ * Reference links used during development:
+ *  - raygui header (h-raylib mirror): https://hackage.haskell.org/package/h-raylib-5.1.1.0/src/raylib/examples/shapes/raygui.h
+ *  - raylib cheatsheet: https://www.raylib.com/cheatsheet/cheatsheet.html
+ *  - raygui upstream header: https://github.com/raysan5/raygui/blob/master/src/raygui.h
+ */
+/*
+ * UI constants:
+ * MaxInput defines the size of the text buffer used by raygui text boxes.
+ * raygui requires the user to provide a fixed-size char buffer, and it is the user's
+ * responsibility to ensure it is large enough for expected input.
+ */
+#define MaxInput 256 
 
-/* Følgende er en forklaring der nok burde være i rapporten men for min egen læring (og tænker også alle andre da
- * det er vigtigt til eksamen at vi alle ved hvordan raylib og raygui fungerer.
- * Raylib er et bibliotek som bliver brugt til grafik, input, lyd og vinduer (det er beregnet til at lave spil).
- * Det fungerer ved at der er en hoved-løkke som kører 60 gange i sekunder. Dette er vores while(!WindowShouldclose()).
- * hver iteration af denne løkke er lig med en frame i vores vindue. Raylib er lavet således at man "tegner" ting, og
- * dette gøres altså fra scraft hver eneste gang den laver en iteration.
- * Raylib håndterer følgende: tekst, linjer, cirkler, billeder, 3D modeller, sprites
- * Raygui: knapper, tekstbokse, tabs, sliders, labels og checkboxes.
- * raygui kræver egentlig ikke ekstra, det bruger bare raylibs tegninger.
- * Raygui er anderlees end klassisk UI-frameworks ved at der ingen UI-objekter er, istedet kalder man på funktioner, der
-* både tegnet UI-elementet og opdateret state, og returenere en værdi af en interaktion.
- * En knap lavet på følgende måde:
-* if (GuiButton((Rectangle){10, 10, 100, 30}, "Click me")) {
-// Knap blev trykket i denne frame
-}
-*altså når bruger trykket på knappen så vil funktionen Guibutton returener true.
-*
-**/
-
-/* raylib og raygui, er bygget op på ideen om at alle "states" styres af brugeren, derfor placeres programstate og UI
- * konstanter såsom farvedefinitioner osv. som globale variable der er tilgængelige i hele loopet.
- * Følgende er programmets konstanter. */
-
-#define MaxInput 256 /* Dennes formål er oprette en konstant værdi her 256, som skal bruges  som bufferstørrelse til tekstinput
-her tillader vi maksimalt 256 karakterer. Raygui tekstbokse kræver en fat bufferlængde.
-"“I implementeringen af GuiTextBox() i raygui anvendes en char-array buffer, som brugeren skal stille til rådighed. Biblioteket modtager pointer til buffer og dens kapacitet, og det er op til brugeren at sikre, at bufferen er tilstrækkelig stor.”"
-*/
-
-/*fra raygui.h (https://github.com/raysan5/raygui/blob/master/src/raygui.h)  er der følgende forklaring på dette:
-RAYGUI STYLE (guiStyle)
-raygui uses a global data array for all gui style properties (allocated on data segment by default),
-*       when a new style is loaded, it is loaded over the global style... but a default gui style could always be
-*       recovered with GuiLoadStyleDefault() function, that overwrites the current style to the default one
-*
-*       The global style array size is fixed and depends on the number of controls and properties:
-*
-*           static unsigned int guiStyle[RAYGUI_MAX_CONTROLS*(RAYGUI_MAX_PROPS_BASE + RAYGUI_MAX_PROPS_EXTENDED)];
-*
-*       guiStyle size is by default: 16*(16 + 8) = 384 int = 384*4 bytes = 1536 bytes = 1.5 KB
-*
-*       Note that the first set of BASE properties (by default guiStyle[0..15]) belong to the generic style
-*       used for all controls, when any of those base values is set, it is automatically populated to all
-*       controls, so, specific control values overwriting generic style should be set after base values
-*
-*       altså raygui har et globalt array som er 2 dimensionelt, hver "control-type" har et tal-ID og hver style-egenskab har et tal-id.
-*       så når vi gerne vil have tabs i vores program så jf. raygui.h så disse egenskaber i index 17 (control id).  og derfor definerer vi tab til 17.
-*       så når vi senere hen vil sætte "stilen" for hvordan programmet skal tegnes så kan vi vha. af
-*       GuiSetStyle(TAB, BASE_COLOR_FOCUSED, 0x4CAF50FF);
-*       og derfor ved guisetstyle automatisk at vi vil "finde style-arrayey for kontrol nr 17 (tab), og skriv 0x4CAF50FF ind på property-indekseet
-*       BASE_COLOR_FOCUSED.
-*       */
-
+/*
+ * raygui style indices:
+ * raygui stores style settings in a global style array indexed by:
+ *   (control_id, property_id)
+ * We define TAB control and relevant property indices here so we can theme tabs
+ * using GuiSetStyle(TAB, property, value).
+ */
 #define TAB  17
 #define TAB_BASE_COLOR_NORMAL   14
 #define TAB_BASE_COLOR_FOCUSED 17
 #define TAB_TEXT_COLOR_NORMAL   15
 #define TAB_TEXT_COLOR_FOCUSED  18
 
-/* FORKLARING PÅ HVAD NORMAL OG FOCUSED BETYDER:
- * ud fra raygui.h så er dette en enum type. Raygui bruger 4 style states for alle ui-elementer.
- * normal, focused, pressed, disable.
- *
- * Normal: dette er standardtilstanden, hvor:
- * - knappen/tabben/textboxen er synlig
- * - brugeren peger ikke på den
- * - den er ikke aktiv/valgt
- * - der sker ikke noget med musen over den
- * - altså normal er hvordan UI'et ser ud i hvile
- *
- * Focused: Ui-elementet er fremhævet, fordi brugeren peger på det altså:
- * - musen er over elementet (hover)
- * - eller elementet er det "aktive element i keyboard-navigation
- * Dette bruges til:
- * - highlight
- * - hovereffekt
- * - "det element du er ved at interagere med"
- *
- * PRESSED: UI-elementet er i state "der trykkes på det"
- * altså user holder musknappen nede, knappen er i aktivt brug
- * dette bruges til visuel feedback ved klik, f.eks. at knappen bliver mørkere farve når den bliver klikket.
- *
- * DISABLED: UI-elementet er slået fra og er ikke synlig for brugeren.
+/*
+ * Shared UI colors used for validation and status rendering across multiple tabs.
  */
-/* følgende definerer nogle farve. i vores raylib kan man definerer farvestruktur ud fra følgende struct:
-* typedef struct Color {
-unsigned char r;
-unsigned char g;
-unsigned char b;
-unsigned char a;    // alpha (gennemsigtighed)
-} Color;
-* så her definerer vi nogle farver ug fra rgb og hvor gennemsigtig farven skal være. */
 
 Color goodGreen = (Color){ 0, 180, 120, 255 };
 Color softRed   = (Color){ 200, 60, 60, 255 };
 Color grayText  = DARKGRAY; //DARKGRAY er en foruddefineret farve fra raylib, og i raylib er den prædefineret til #define DARKGRAY (Color){ 80, 80, 80, 255 }
 
-//bfs
-#define MAX_ATOMS 128
+/*
+ * Algorithm tab state (BFS/DFS):
+ * These variables cache traversal results so we do not recompute them every frame.
+ */
+
 static int bfsOrder[MAX_ATOMS];
 static int bfsCount = 0;
 static bool bfsRan = false;
@@ -131,8 +82,10 @@ static bool dfsRan = false;
 static char bfsLog[4096];   // tekstlog til GUI
 
 
-//infobokse
-
+/*
+ * Tab "info box" toggles:
+ * Each boolean controls whether the corresponding help/info popup is currently visible.
+ */
 static const char *smilesValidationText =
 	"The SMILES validation module analyzes the input string through several "
 	"linear scans (for-loops), each running in O(n) time. The first pass checks "
@@ -140,12 +93,6 @@ static const char *smilesValidationText =
 	"scan uses simple stack logic to ensure that parentheses and brackets are "
 	"properly opened and closed,";
 
-bool show_adj_matrix_info = false; 
-bool show_stability_info = false; 
-bool show_algorithms_info = false; 
-bool show_graph_view_info = false; 
-bool show_substructures_info = false; 
-bool show_node_feature_info = false; 
 
 static const char *info_adj_matrix_text = 
 	"The SMILES-to_adjacency module builds a square matrix sixed by the atom count in the validated SMILES string. It scans the SMILES character by character and whenever it finds a new atom, it connects it to the correct previous atom (handling branches via parentheses). Ring numbers are tracked so the second occurence closes the ring by adding a bond between the stored atom and the current atom. Bond order is set from the bond symbol (-, =, #), defaulting to single bonds when no symbol is present. Finally, the matrix is mirrored to make is symmetric, since bonds are recorded in one direction during  the scan."; 
@@ -161,640 +108,629 @@ static const char *info_nodefeature_info =
 	"This process converts a validated SMILES string into a structured numerical representation of atoms. Each atom is identified and assigned chemical properties such as atomic number, valence, and aromaticity. These properties are stored row-wise in a node feature matrix, where each row represents one atom. The matrix is validated to ensure all features are chemically valid before being used in later steps.";
 
 
-static char smilesInput[256] = {0}; // måske skulle denne istedet for 256 så være defineret til maxinput??
-/* det er vigtigt at vores smilesinput er static, fordi at husk på at vores loop kører 0 gange i sekunder, og dermed
- * så hvis ikke vores smilesinput var static så ville det simpelthen blive nulstillet for hvert frame */
+bool show_adj_matrix_info = false; 
+bool show_stability_info = false; 
+bool show_algorithms_info = false; 
+bool show_graph_view_info = false; 
+bool show_substructures_info = false; 
+bool show_node_feature_info = false;
 
+/*
+ * Input buffers:
+ * Must be static because the raylib loop redraws every frame. If these were local,
+ * they would reset each frame and the text box would lose its contents.
+ */
+static char smilesInput[256] = {0}; 
 static char substructures_input[256] = {0};
-bool showValidationInfo = false;
-static bool inputValid = false; // dette værdi som sættes når vi har valideret den i vores tab "Input validation". Variablen kan bruges i andre faner, f.eks. giver det ikke mening at forsøge at lave matrixe hvis vores streng er forkert.
-static bool editMode = false; /* Raygui's tekstbokse bruger en "editMode" tilstand. Når editmode = true så betyder det
-at tekstboksen er aktiv, og tasturet skriver i den. når editmode= false, så er den inaktiv, og keyboard-input
-går istedet til raylib (hotkeys) denne skal altså bruges til vores boks hvor vi skriver strengen. Igen er det vigtigt at den er static
-således at den ikke nulstilles for hver gang. */
-// static bool answered = false; anvendes ikke i koden? har kommenteret den ud nu. Skal eventuelt slettes.
-static bool val_flag = false; // dette "flag" skal sikre at valence check kun kører en gang.
-// static bool end_flag = false; anvendes ikke i koden? har kommenteret den ud, men kan kun finde den i clear hvor den igen sættes til false
-static bool moleculeLoaded = false; // denne fortæller om molekylet er generet og klar, anvendes som state i stability, algorithm og graph view.
-static bool moleculeValidated= false; //fortæller om valideringen ER blevet udført (ikke om den var gyldig!)
-Font uiFont; /* Font er en struct type som er defineret i raylib og ser sådan her ud:
-typedef struct Font {
-int baseSize;
-int glyphCount;
-int glyphPadding;
-Texture2D texture;      // texture atlas containing the glyphs
-Rectangle *recs;        // rectangles for each glyph
-GlyphInfo *glyphs;      // info for each glyph (codepoint, offsets…)
-} Font;
-og vi laver dermed en variabel ved navn uiFont. Denne skal anvendes når vi initiliaserer vores vindue. */
 
-// følgende funktioner er til substructure funktionen 
+/*
+ * Input/validation state:
+ * inputValid: true only if the current SMILES passed validate_smiles().
+ * moleculeValidated: true if validation has been run at least once (even if it failed).
+ * editMode: raygui text box state; true when the user is actively typing into the input box.
+ */
+bool showValidationInfo = false;
+static bool inputValid = false; 
+static bool editMode = false;
+static bool moleculeValidated= false; 
+
+
+/*
+ * One-shot execution flags:
+ * Some computations are expensive and should not run every frame.
+ * These flags ensure the computation is performed once after input changes.
+ */
+static bool val_flag = false; 
+static bool moleculeLoaded = false; 
+static bool graphComputed = false;
+
+
+
+
+/*
+ * Validation module outputs:
+ * error_count and errors[] are filled by validate_smiles() to describe problems in the input.
+ * These are global so multiple tabs can display validation errors consistently.
+ */
+static int error_count; 
+static Error errors[MAX_ERRORS]; 
+
+/*
+ * UI font loaded at startup and reused by all drawing functions.
+ * Stored globally to avoid reloading and to keep rendering consistent across tabs.
+ */
+Font uiFont;
+
+/*
+ * Substructure/toxicophore tab state:
+ */
 static int pressedsubstructures = 0; 
 static int substructure_test = 0; 
 
+/*
+ * Stability/valence check tab state:
+ * molecule and smile_size are produced during parsing and used by run_valence_check().
+ * Keeping them cached prevents rebuilding the molecule every frame.
+ */
+static Symbol *molecule = NULL; 
+static int smile_size = 0; 
 
-// i vores graph tab så kører dfs igen og igen for hver frame. jeg laver her en bool som gør at det kun bliver gjort en gang. 
-static bool graphComputed = false;
-
-// istedet for at vi skal lave atom_count osv i hver tab så laver vi det atomcount 
+/*
+ * Graph view cached values:
+ * atomcountstactic caches the atom count so it can be reused across tabs without recomputation.
+ * cached_cycle_count stores the number of detected cycles (used by graph layout / traversal view).
+ */
 static int atomcountstactic;
-
-// variables used in drawtab_graph
 static int cached_cycle_count = 0; 
 
-/* følgende funktion skal kører hele loopet. Således at man blot kalder på denne indtil den bliver 0. Dette gør det nemt at kører programmet blot fra terminalen */
+
+/*
+ * runGUI()
+ * Main entry point for the GUI application.
+ *
+ * This function initializes raylib/raygui, configures global GUI styling, and then
+ * runs the main render loop until the user closes the window.
+ *
+ * The loop follows the standard raylib pattern:
+ *   BeginDrawing() -> draw everything for the current frame -> EndDrawing()
+ * Because the screen is redrawn from scratch every frame, persistent UI state is stored
+ * in static/global variables (input buffers, toggles, cached results, etc.).
+ *
+ * Returns 0 on normal exit.
+ */
 int runGUI() {
-    /* Initwindow (fra RAYLIB) åbner et OS-vindue (x11/wayland på linux, win32 på windows, cocoa på macos). Initiliaserer opengl-context
-     * forbedereder raylib til at tegne
-     * sætter vinduets størrelse (900,600)
-     * sætter titlen i titellinjen vha. af string
-     * nulstiller alle interne state (input-buffer, frame timer textures, fonts osv).  */
-
-    InitWindow(1400, 1000, "S-SMILES");
-    SetTargetFPS(60); // fortæller raylib, at hovedløkken skal forsøge at køre 60 frames per second (FPS). Raylib måler tiden for hver frame, kalder WaitTime(), sørge for at løkken aldrig kører hurtigere end den angivne fps
-    TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
-    /* tracelog er raylibs indbyggede logging-funktion, som bruges til at skrive debug- eller statusbeskeder til terminalen.
-    * Den svarer til printf, men med ekstra features:
-
-    forskellige log-niveauer (INFO, WARNING, ERROR, DEBUG)
-
-    farvet output i terminalen
-
-    mulighed for global log-filtering
-
-    konsistent logging på alle platforme
-
-    Kort sagt:DEN gør at når vi kører fra clion kan vi se f.eks. "INFO Validate pressed. INPUT: CCCC | Valid=1 */
-
-    /* følgende par linjer kode har med vores tab. VI har først vores activeTab som er en variable der skal holde styr
-     * på hvilken tab der er aktiv i GUI'en. Dette gøres ud fra en char array med stringe som svarer til titlerne. her
-     * starter vi altså med index 0 (activetab = 0) som betyder vi starter på input validation.  */
-    int activeTab = 0;
-    /* tabs er et statisk array, hvor hvert element er en strengpeger (const char*).
-        * Selvom arrayet ikke selv er en pointer-til-pointer, decayer det automatisk til const char** når det bruges som argument til en funktion.
-        * Dette gør det muligt for raygui at modtage tab-tekster som en liste af C-strings. */
-    /* forklaring skrevet selv: raygui initiliaserer tabs vha. guiTabBar, denne forventer følgende
-     * GuiTabBar(Rectangle bounds, const char **text, int count, int *active);
-     * altså vi har en liste af string disse er af typen char *. En liste af tekster er derfor char *[N], når det gives som funktion-argument så i c
-     * repræsenteres det som char**.
-     *
+   /*
+     * InitWindow() creates an OS-level window and OpenGL context:
+     *  - Linux: X11/Wayland
+     *  - Windows: Win32
+     *  - macOS: Cocoa
+     * It also initializes internal raylib state (input, timers, textures, etc.).
      */
-    const char *tabs[] = {
-        "Input Validation",
-        "Adjacency Matrix",
-        "Stability",
-        "Algorithms",
-        "Graph View",
-	"Substructures",
-    	"Node feature",
-    };
-    int tabCount = sizeof(tabs) / sizeof(tabs[0]);  // finder hvor mange elementer vi har i vores char tabs array.
+	InitWindow(1400, 1000, "S-SMILES");
 
-    uiFont = LoadFontEx("../GUI/roboto.ttf", 30, NULL, 0);  // loader fonten georgia.ttf med størrelse 30 px. NULL,0 betyder at reaylib selv genere glyphs for standard ASCII.
-    GuiSetFont(uiFont); // istedet for standard font så er det georgia der sk
+    /*
+     * Tell raylib to target 60 FPS. raylib will internally delay frames so the loop
+     * does not run faster than the requested rate.
+     */
+	SetTargetFPS(60); 
 
-    // Set these once (global UI styles)
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 15); // Sætter tekststørrelsen for alle w
-    GuiSetStyle(DEFAULT, BORDER_WIDTH, 1); // Alle widgets får en kant/bo
-    GuiSetStyle(DEFAULT, LINE_COLOR, 0x555555ff); // Definerer farven på kanter/linjer i GUI’en.  0x555555ff = mørk grå (hex: R=55, G=5
+    /*
+     * TraceLog() is raylib’s built-in logging function (like printf, but with levels,
+     * consistent formatting, and cross-platform behavior).
+     */
+	TraceLog(LOG_INFO, "CWD: %s", GetWorkingDirectory());
 
-    /* Style for TAB-widget specifikt */
-    GuiSetStyle(TAB, TEXT_PADDING, 8); // Indre padding i fanerne (afstand mellem tab-kant og teksten) = 8 px.
-    GuiSetStyle(TAB, BORDER_WIDTH, 1); // Tab-elementerne får en 1 px border (kan være forskellig fra default).
-    GuiSetStyle(TAB, BASE_COLOR_NORMAL, 0xE8E8E8FF); // Når en tab ikke er valgt, er dens baggrundsfarve  0xE8E8E8FF = lys grå (normal state).
-    GuiSetStyle(TAB, BASE_COLOR_FOCUSED, 0xC0FAC0FF); // Når en tab er valgt/hover, bruges 0xC0FAC0FF = lys grøn.
-    GuiSetStyle(TAB, TEXT_COLOR_FOCUSED, 0x006600FF); // Tekstfarven i den aktive faneblad bliver mørk grøn #006600.
+    /*
+     * Tab bar state:
+     * activeTab tracks which tab is currently selected (0 = first tab).
+     */
+	int activeTab = 0;
 
 
+    /*
+     * Tab labels passed to GuiTabBar().
+     */
+	const char *tabs[] = {
+		"Input Validation",
+		"Adjacency Matrix",
+		"Stability",
+		"Algorithms",
+		"Graph View",
+		"Substructures",
+		"Node feature",
+	};
+	int tabCount = sizeof(tabs) / sizeof(tabs[0]);  // founds out how many tabs we have (so we dont have to hardcode it).
+    /*
+     * Load and apply UI font (used by raygui widgets and custom DrawTextEx calls).
+     * Note: the font file path is relative to the working directory.
+     */
+	uiFont = LoadFontEx("../GUI/roboto.ttf", 30, NULL, 0);  // loader fonten georgia.ttf med størrelse 30 px. NULL,0 betyder at reaylib selv genere glyphs for standard ASCII.
+	GuiSetFont(uiFont); // istedet for standard font så er det georgia der sk
+
+    /*
+     * Global GUI style configuration:
+     * These settings affect most controls unless overridden per-control (e.g., TAB styles).
+     */
+	GuiSetStyle(DEFAULT, TEXT_SIZE, 15); // Sætter tekststørrelsen for alle w
+	GuiSetStyle(DEFAULT, BORDER_WIDTH, 1); // Alle widgets får en kant/bo
+	GuiSetStyle(DEFAULT, LINE_COLOR, 0x555555ff); // Definerer farven på kanter/linjer i GUI’en.  0x555555ff = mørk grå (hex: R=55, G=5
+
+
+    /*
+     * TAB-specific style configuration (padding, borders, colors for normal/focused state).
+     */
+	GuiSetStyle(TAB, TEXT_PADDING, 8); // Indre padding i fanerne (afstand mellem tab-kant og teksten) = 8 px.
+	GuiSetStyle(TAB, BORDER_WIDTH, 1); // Tab-elementerne får en 1 px border (kan være forskellig fra default).
+	GuiSetStyle(TAB, BASE_COLOR_NORMAL, 0xE8E8E8FF); // Når en tab ikke er valgt, er dens baggrundsfarve  0xE8E8E8FF = lys grå (normal state).
+	GuiSetStyle(TAB, BASE_COLOR_FOCUSED, 0xC0FAC0FF); // Når en tab er valgt/hover, bruges 0xC0FAC0FF = lys grøn.
+	GuiSetStyle(TAB, TEXT_COLOR_FOCUSED, 0x006600FF); // Tekstfarven i den aktive faneblad bliver mørk grøn #006600.
 
 
 
-    while (!WindowShouldClose()) // Hoved-loop: kører indtil brugeren lukker vinduet (ESC, kryds, osv.)
-    {
-        BeginDrawing();  // Starter en ny frame – alt tegning mellem BeginDrawing/EndDrawing
-        ClearBackground((Color){ 255, 250, 250 }); // Sætter baggrundsfarven (meget lys rosa/hvid)
+
+    /*
+     * Main draw loop: runs until the window is closed (ESC, window close button, etc.).
+     */
+	while (!WindowShouldClose()) {
+        	BeginDrawing();  // Starter en ny frame – alt tegning mellem BeginDrawing/EndDrawing
+        	ClearBackground((Color){ 255, 250, 250 }); // Sætter baggrundsfarven (meget lys rosa/hvid)
 	
+        /*
+         * Temporarily override BUTTON style to draw the CLEAR button as red.
+         * We save old values and restore them afterward so other buttons are unaffected.
+         */
+		int oldBaseNormal = GuiGetStyle(BUTTON, BASE_COLOR_NORMAL);
+		int oldBaseFocused = GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED);
+		int oldTextNormal = GuiGetStyle(BUTTON, TEXT_COLOR_NORMAL);
 
-        // Gemmer de nuværende styles for BUTTON, så vi kan restore dem senere
-        int oldBaseNormal = GuiGetStyle(BUTTON, BASE_COLOR_NORMAL);
-        int oldBaseFocused = GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED);
-        int oldTextNormal = GuiGetStyle(BUTTON, TEXT_COLOR_NORMAL);
-
-        // Midlertidig style til "CLEAR"-knappen (rød med hvid tekst)
-        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, 0xCC4444FF);   // Normal baggrundsfarve: mørk rød
-        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, 0xDD6666FF);  // Når hover/focus: lidt lysere rød
-        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
+        /*
+         * CLEAR button: resets all GUI state (input text, cached results, flags, etc.).
+         * GuiButton() draws the button and returns true only on the frame it is clicked.
+         */
+		GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, 0xCC4444FF);   // Normal baggrundsfarve: mørk rød
+		GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, 0xDD6666FF);  // Når hover/focus: lidt lysere rød
+		GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0xFFFFFFFF); // Tekstfarve: hvid
 
         // Definerer rektanglet (position og størrelse) for CLEAR-knappen
-        Rectangle clearTab = {1200, 20, 140, 30};
-        /* rectangle er en struct i raylib som ser ud på følgende:
-        * typedef struct Rectangle {
-        float x;
-        float y;
-        float width;
-        float height;
-        } Rectangle;
-        hvor felterne er: x: horisontal position (pixel fra venstre)
-        y vertikal position (pixel fra toppen)
-        width (bredde i pixel)
-        height - højde i pixel) */
-
+		Rectangle clearTab = {1200, 20, 140, 30};
         // Tegner en knap med teksten "CLEAR". Hvis den klikkes, kaldes Clear()
-        if (GuiButton(clearTab, "CLEAR")) {
-            Clear();
-        }
-        /* syntax er bool GuiButton(Rectangle bounds, const char *text);
-        Den gør to ting i én funktion:
-        1. Tegner knappen på skærmen med den givne tekst
-        2. Returnerer true i dén frame hvor knappen blev klikket
-        så når brugeren har klikket så er sætnigen true og så kører vi clear().
-        Clear er vores egen funktion og er egentlig blot en funktion som sætter alle vores variable i programmet tilbage fra start (ingen matrix osv).
-        */
+		if (GuiButton(clearTab, "CLEAR")) {
+			Clear();
+		}
         // Keyboard-genvej: CTRL + Z gør det samme som at trykke CLEAR
-        if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
-            Clear();
-        }
-        // Restore de gamle styles, så andre knapper ikke arver den røde stil
-        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, oldBaseNormal);
-        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, oldBaseFocused);
-        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, oldTextNormal);
-        // TAB-styles: vi styler fanebladene i tabbaren
+		if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
+			Clear();
+		}
+        /* Restore original button style. */
+		GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, oldBaseNormal);
+		GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED, oldBaseFocused);
+		GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, oldTextNormal);
 
-        // Sæt standard baggrundsfarve for tab (ikke valgt) til grå
-        GuiSetStyle(TAB + 0, TAB_BASE_COLOR_NORMAL, 0xCCCCCCFF); // default gray
-        // (TAB + 0 bruges fordi raygui bruger “controls + state” som indeksering – TAB er basis)
-        // Hvis input er gyldigt, gør vi tab'en grøn når den er aktiv/focused
-        if (inputValid)
-        {
-            GuiSetStyle(TAB + 0, TAB_BASE_COLOR_FOCUSED, 0x4CAF50FF);
-        }
+        /*
+         * Tab bar styling: example of conditional styling based on application state.
+         * If the input is valid, the focused tab is highlighted in green.
+         */
+		GuiSetStyle(TAB + 0, TAB_BASE_COLOR_NORMAL, 0xCCCCCCFF); // default gray
+		if (inputValid){
+			GuiSetStyle(TAB + 0, TAB_BASE_COLOR_FOCUSED, 0x4CAF50FF);
+		}
+	/*
+         * Draw the tab bar and update activeTab based on user interaction.
+         */
+		GuiTabBar(
+			(Rectangle){20, 20, 860, 30},
+			tabs,
+			tabCount,
+			&activeTab
+		);
 
-        // Tegner selve tab-baren (faneblade)
-        GuiTabBar(
-            (Rectangle){20, 20, 860, 30},
-            tabs,
-            tabCount,
-            &activeTab
-        );
-        // Alt efter hvilken tab der er aktiv, kalder vi en “draw”-funktion for den side
-        switch (activeTab)
-        {
-            case 0: DrawTab_InputValidation(); break;
-            case 1: DrawTab_AdjacencyMatrix(); break;
-            case 2: DrawTab_StabilityCheck(); break;
-            case 3: DrawTab_AlgorithmVisualization(); break;
-            case 4: DrawTab_GraphView(); break;
-	    case 5: DrawTab_Substructures(); break;
-	    case 6: DrawTab_Nodefeature(); break; 
-        }
-	
+        /*
+         * Dispatch drawing based on the currently selected tab.
+         * Each DrawTab_* function draws the full contents for that tab in the current frame.
+         */
+		switch (activeTab){
+			case 0: DrawTab_InputValidation(); break;
+			case 1: DrawTab_AdjacencyMatrix(); break;
+			case 2: DrawTab_StabilityCheck(); break;
+			case 3: DrawTab_AlgorithmVisualization(); break;
+			case 4: DrawTab_GraphView(); break;
+			case 5: DrawTab_Substructures(); break;
+			case 6: DrawTab_Nodefeature(); break; 
+		}
+		EndDrawing(); // Afslutter framen og viser den på skærmen
+		}
+	CloseWindow(); // Rydder raylib op og lukker vinduet
+	return 0;
+}
+/*
+ * DrawTab_InputValidation()
+ * Tab 0: Validates the SMILES string entered by the user.
+ *
+ * The tab supports two modes:
+ *  - Info mode: shows an explanation panel and a visual validation breakdown.
+ *  - Normal mode: shows input textbox, Validate button, and error list/status.
+ *
+ * When validation is run, we also reset cached downstream computations
+ * (valence check, graph rendering) so other tabs recompute using the new input.
+ */
+void DrawTab_InputValidation(){
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &showValidationInfo);
+	if(showValidationInfo){
+		DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			smilesValidationText,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY
+		);
 
-        EndDrawing(); // Afslutter framen og viser den på skærmen
-    }
+		DrawTextEx(uiFont,"User Example:", (Vector2){50, 480},30,2, BLACK);
+		if (!moleculeValidated) {
+		}
+		else {
+			moleculeValidated = true;
+			inputValid = validate_smiles(smilesInput, &error_count, errors);
+			val_flag = false;
+			moleculeLoaded = false;
+			Vector2 start = {250, 480};
+			float fontSize = 30;
+			float spacing = 2;
+			// Tegn Smiles
+			DrawTextEx(uiFont, smilesInput, start, fontSize, spacing, BLACK);
 
-    CloseWindow(); // Rydder raylib op og lukker vinduet
-    return 0;
+			// Bredde af tekst
+			Vector2 size = MeasureTextEx(uiFont, smilesInput, fontSize, spacing);
+
+			// Start af linjer er lig med start af smiles + bredde + lidt ekstra plads
+			float gap = 12.0f;
+			float beginPosx = start.x + size.x + gap;
+
+			// midt y pos
+			float midY = start.y + fontSize * 0.5f;
+
+			// Mellemrum imellem linjer
+			float dy = 50;
+
+			// STArt
+			Vector2 beginPos = {beginPosx, midY};
+
+			// slutpunkter
+			Vector2 b1 = {beginPosx + 80, midY - dy};
+			Vector2 b2 = {beginPosx + 80, midY};
+			Vector2 b3 = {beginPosx + 80, midY + dy};
+			Vector2 b4 = {beginPosx + 80, midY + dy * 2};
+
+			// Tegn linjer
+			DrawLineV(beginPos, b1, BLACK);
+			DrawLineV(beginPos, b2, BLACK);
+			DrawLineV(beginPos, b3, BLACK);
+			DrawLineV(beginPos, b4, BLACK);
+
+			if (is_permitted(smilesInput, &error_count, errors)) {
+				DrawTextEx(uiFont, "PERMITTED CHARACTERS",
+	       				(Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, GREEN);
+			} else {
+				DrawTextEx(uiFont, "ILLEGAL CHARACTER",
+	       				(Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, RED);
+			}
+
+
+			if (closed_brackets(smilesInput, &error_count,errors)) {
+				DrawTextEx(uiFont, "BALANCED PARENTHESES",
+	       				(Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, GREEN);
+			} else {
+				DrawTextEx(uiFont, "UNBALANCED PARENTHESES",
+					(Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, RED);
+			}
+
+
+			if (ring_closed(smilesInput, &error_count, errors)) {
+				DrawTextEx(uiFont, "RING STRUCTURE VALID",
+					(Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, GREEN);
+			} else {
+				DrawTextEx(uiFont, "INVALID RING CLOSURE",
+					(Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, RED);
+			}
+
+
+			if (misc_check(smilesInput, &error_count, errors)) {
+				DrawTextEx(uiFont, "MISC STRUCTURE VALID",
+					(Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, GREEN);
+			} else {
+				DrawTextEx(uiFont, "MISC STRUCTURE ERROR",
+	       				(Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, RED);
+			}
+		}
+		inputValid = validate_smiles(smilesInput, &error_count, errors);
+	}
+
+	if (!showValidationInfo) {
+		DrawTextEx(uiFont,"Input Validation Tab", (Vector2){30,80},30,2, BLACK);
+		GuiLabel((Rectangle){30, 130, 120, 25}, "SMILES Input:");
+		if (GuiTextBox((Rectangle){160, 130, 300, 25}, smilesInput, 256, editMode)){
+			editMode = !editMode;
+		}
+		// Validate button
+		if (GuiButton((Rectangle){470, 130, 100, 25}, "Validate")){
+			moleculeValidated = true;
+			inputValid = validate_smiles(smilesInput, &error_count, errors);
+			atomcountstactic = get_atom_count(smilesInput);
+			graphComputed = false;
+			val_flag = false;
+			moleculeLoaded = false;
+			TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
+			inputValid = validate_smiles(smilesInput, &error_count, errors); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
+			TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
+			}
+		if (moleculeValidated) {
+			if (inputValid ) {
+				DrawTextEx(uiFont, "Valid SMILES", (Vector2){30, 180}, 30, 0, goodGreen);
+				DrawTextEx(uiFont, "INPUT SIZE DOES NOT EXCEED MAX_INPUT OF 100", (Vector2){30, 230}, 15, 0, goodGreen);
+				DrawTextEx(uiFont, "VALID PARENTHESES", (Vector2){30, 250}, 15, 0, goodGreen);
+				DrawTextEx(uiFont, "NO ILLEGAL CHARACTERS", (Vector2){30, 270}, 15, 0, goodGreen);
+				DrawTextEx(uiFont, "NO UNCLOSED RINGS", (Vector2){30, 290}, 15, 0, goodGreen);
+				smile_size = count_smiles(smilesInput);
+			}
+			else {
+				DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
+				if (!inputValid) {
+					DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
+					int y = 220;
+					for (int i = 0; i < error_count; i++) {
+						char buffer[256];
+						snprintf(buffer, sizeof(buffer), "%s (position %d)",
+	       						get_error_message(i, &error_count, errors),
+							get_error_position(i, &error_count, errors));
+						DrawTextEx(uiFont, buffer, (Vector2){30, y}, 20, 2, RED);
+						y += 40;
+					}
+				}
+			}
+		}
+		else {
+			DrawTextEx(uiFont, "SMILES INPUT REQUIRED", (Vector2){30, 180}, 20, 2, BLACK);
+		}
+	}
 }
 
-void DrawTab_InputValidation()
-{
-
-
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &showValidationInfo);
-
-    if(showValidationInfo){
-        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        smilesValidationText,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
-
-
-        DrawTextEx(uiFont,"User Example:", (Vector2){50, 480},30,2, BLACK);
-        if (!moleculeValidated) {
-
-        }
-        else {
-            moleculeValidated = true;
-            inputValid = validate_smiles(smilesInput);
-
-            val_flag = false;
-            moleculeLoaded = false;
-
-            Vector2 start = {250, 480};
-            float fontSize = 30;
-            float spacing = 2;
-
-            // Tegn Smiles
-            DrawTextEx(uiFont, smilesInput, start, fontSize, spacing, BLACK);
-
-            // Bredde af tekst
-            Vector2 size = MeasureTextEx(uiFont, smilesInput, fontSize, spacing);
-
-            // Start af linjer er lig med start af smiles + bredde + lidt ekstra plads
-            float gap = 12.0f;
-            float beginPosx = start.x + size.x + gap;
-
-            // midt y pos
-            float midY = start.y + fontSize * 0.5f;
-
-            // Mellemrum imellem linjer
-            float dy = 50;
-
-            // STArt
-            Vector2 beginPos = {beginPosx, midY};
-
-            // slutpunkter
-            Vector2 b1 = {beginPosx + 80, midY - dy};
-            Vector2 b2 = {beginPosx + 80, midY};
-            Vector2 b3 = {beginPosx + 80, midY + dy};
-            Vector2 b4 = {beginPosx + 80, midY + dy * 2};
-
-            // Tegn linjer
-            DrawLineV(beginPos, b1, BLACK);
-            DrawLineV(beginPos, b2, BLACK);
-            DrawLineV(beginPos, b3, BLACK);
-            DrawLineV(beginPos, b4, BLACK);
-
-            if (is_permitted(smilesInput)) {
-                DrawTextEx(uiFont, "PERMITTED CHARACTERS",
-                           (Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, GREEN);
-            } else {
-                DrawTextEx(uiFont, "ILLEGAL CHARACTER",
-                           (Vector2){ b1.x + 20, b1.y - 20 }, fontSize - 10, spacing, RED);
-            }
-
-
-            if (closed_brackets(smilesInput)) {
-                DrawTextEx(uiFont, "BALANCED PARENTHESES",
-                           (Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, GREEN);
-            } else {
-                DrawTextEx(uiFont, "UNBALANCED PARENTHESES",
-                           (Vector2){ b2.x + 20, b2.y - 20 }, fontSize - 10, spacing, RED);
-            }
-
-
-            if (ring_closed(smilesInput)) {
-                DrawTextEx(uiFont, "RING STRUCTURE VALID",
-                           (Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, GREEN);
-            } else {
-                DrawTextEx(uiFont, "INVALID RING CLOSURE",
-                           (Vector2){ b3.x + 20, b3.y - 20 }, fontSize - 10, spacing, RED);
-            }
-
-
-            if (misc_check(smilesInput)) {
-                DrawTextEx(uiFont, "MISC STRUCTURE VALID",
-                           (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, GREEN);
-            } else {
-                DrawTextEx(uiFont, "MISC STRUCTURE ERROR",
-                           (Vector2){ b4.x + 20, b4.y - 20 }, fontSize - 10, spacing, RED);
-            }
-        }
-        inputValid = validate_smiles(smilesInput);
-    }
-
-
-    if (!showValidationInfo) {
-
-        DrawTextEx(uiFont,"Input Validation Tab", (Vector2){30,80},30,2, BLACK);
-
-        GuiLabel((Rectangle){30, 130, 120, 25}, "SMILES Input:");
-        if (GuiTextBox((Rectangle){160, 130, 300, 25}, smilesInput, 256, editMode)){
-        editMode = !editMode;
-    }
-
-    // Validate button
-    if (GuiButton((Rectangle){470, 130, 100, 25}, "Validate"))
-    {
-        moleculeValidated = true;
-        inputValid = validate_smiles(smilesInput);
-	atomcountstactic = get_atom_count(smilesInput);
-	graphComputed = false;
-        val_flag = false;
-        moleculeLoaded = false;
-
-        TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid);
-        inputValid = validate_smiles(smilesInput); // smilesInput var den variable vi brugt i textbox, så vi får teksten fra boxen og validerer.
-        TraceLog(LOG_INFO, "Validate pressed. Input: %s | Valid=%d", smilesInput, inputValid); //TraceLog er en måde i raylib at skrive i terminalen, sådan når man skriver og tester koden så kan vi følge med hvad der sker i programmet.
-    }
-
-
-    if (moleculeValidated) {
-
-        if (inputValid ) {
-            DrawTextEx(uiFont, "Valid SMILES", (Vector2){30, 180}, 30, 0, goodGreen);
-
-            DrawTextEx(uiFont, "INPUT SIZE DOES NOT EXCEED MAX_INPUT OF 100", (Vector2){30, 230}, 15, 0, goodGreen);
-            DrawTextEx(uiFont, "VALID PARENTHESES", (Vector2){30, 250}, 15, 0, goodGreen);
-            DrawTextEx(uiFont, "NO ILLEGAL CHARACTERS", (Vector2){30, 270}, 15, 0, goodGreen);
-            DrawTextEx(uiFont, "NO UNCLOSED RINGS", (Vector2){30, 290}, 15, 0, goodGreen);
-        }
-        else {
-            DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
-            if (!inputValid) {
-                DrawTextEx(uiFont, "INVALID SMILES:", (Vector2){30, 180}, 25, 2, softRed);
-
-                int y = 220;
-                int cnt = get_error_count();
-
-                for (int i = 0; i < cnt; i++) {
-                    char buffer[256];
-                    snprintf(buffer, sizeof(buffer), "%s (position %d)",
-                             get_error_message(i),
-                             get_error_position(i));
-
-                    DrawTextEx(uiFont, buffer, (Vector2){30, y}, 20, 2, RED);
-                    y += 40;
-                }
-            }
-        }
-    }
-    else {
-        DrawTextEx(uiFont, "SMILES INPUT REQUIRED", (Vector2){30, 180}, 20, 2, BLACK);
-    }
-
-   }
-
-
-}
-
-void DrawTab_AdjacencyMatrix()
-{
-
-    // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
-    if (!inputValid) {
-        DrawTextEx(uiFont,
-            "Please enter and validate a valid SMILES in the Input tab first.",
-            (Vector2){30,130}, 18,2, RED);
-        return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
-    }
-
-	
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_adj_matrix_info);
-
-    if(show_adj_matrix_info){
-        DrawTextEx(uiFont,"Adjacency matrix Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_adj_matrix_text,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
+/*
+ * DrawTab_AdjacencyMatrix()
+ * Tab 1: Builds and displays the adjacency matrix for the validated SMILES string.
+ *
+ * Uses a scroll panel because the matrix can be larger than the visible window.
+ * The matrix is regenerated from smilesInput each frame (could be cached if desired),
+ * but only when inputValid is true.
+ */
+void DrawTab_AdjacencyMatrix(){
+	// Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
+	if (!inputValid) {
+		DrawTextEx(uiFont,"Please enter and validate a valid SMILES in the Input tab first.",
+			(Vector2){30,130}, 18,2, RED);
+		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+		}
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_adj_matrix_info);
+	if(show_adj_matrix_info){
+		DrawTextEx(uiFont,"Adjacency matrix Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			info_adj_matrix_text,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY
+		);
 	} else {
-    // Overskrift til tabben
-    DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
-    // Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
-    
-    // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
-    int adjacency_matrix[atomcountstactic][atomcountstactic];
+		// Overskrift til tabben
+		DrawText("Adjacency Matrix Tab", 30, 80, 25, BLACK);
+		// Hvis den er valid så skal vi have lavet adjacency matrix ud fra adjacency_matrix.h
+		// // vi laver vores adjacency_matrix ud fra atom_count i det vi godt kan kende størrelsen
+		int adjacency_matrix[atomcountstactic][atomcountstactic];
+		create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
 
-    create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+		/* Scroll opsætning til matrixen */ 
+		static Vector2 scroll = {0,0}; // static fordi den skal huskes mellem frames. dermed skal den kun initiliaserer en gang. Scroll vil løbende blive ændret, men skal beholdes mellem hver frame.  
+		int screenW = GetScreenWidth(); // henter størrelsen på hele vinduet, dette gør at vi ikke skal huske at justere denne hvis vi ændrer vinduet.  
+		int screenH = GetScreenHeight(); 
+		// hvor på skærmen scroll-området skal være
+		Rectangle bounds = {
+			30, // x -position - scrollpanelet starter 30 pixels fra venstre kant 
+			140, // y-position - scrollpanalet starter 140 pixel fra toppen - så der er plads til vores titel osv. 
+			screenW - 60, // bredde (lidt margin i siderne (60 grundet vores position 30 til hver side.) 
+			screenH - 180, // højde (så der er plads til overskrift osv). 
+		}; 
 
-	/* Scroll opsætning til matrixen */ 
-	static Vector2 scroll = {0,0}; // static fordi den skal huskes mellem frames. dermed skal den kun initiliaserer en gang. Scroll vil løbende blive ændret, men skal beholdes mellem hver frame.  
-	
-	int screenW = GetScreenWidth(); // henter størrelsen på hele vinduet, dette gør at vi ikke skal huske at justere denne hvis vi ændrer vinduet.  
-	int screenH = GetScreenHeight(); 
+		int cell_size = 30; 
 
-	// hvor på skærmen scroll-området skal være
-	Rectangle bounds = {
-		30, // x -position - scrollpanelet starter 30 pixels fra venstre kant 
-		140, // y-position - scrollpanalet starter 140 pixel fra toppen - så der er plads til vores titel osv. 
-		screenW - 60, // bredde (lidt margin i siderne (60 grundet vores position 30 til hver side.) 
-		screenH - 180, // højde (så der er plads til overskrift osv). 
-	}; 
+		// hvor stort indholdet potentielt er (matrix + lidt ekstra plads) 
+		int contentWidth = (atomcountstactic + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst.
+		int contentHeight = (atomcountstactic +4) * cell_size +80;
 
-	int cell_size = 30; 
+		// hvor stort indholdet potentielt kan være - hvis content er større end bounds -> scrollbars kommer frem 
+		Rectangle content = {
+			0, 0,  // origin i panelet
+			contentWidth, 
+			contentHeight, 
+		}; 
 
-	// hvor stort indholdet potentielt er (matrix + lidt ekstra plads) 
-	int contentWidth = (atomcountstactic + 2) * cell_size +80 ; // vi har atom_count kolonner +2 (en kolonne til række-indeks, en til "luft") - og vores celle er 30 pixel bred og høj, dernæst har vi 80 så vi ikke rammer kanten med tekst.
-	int contentHeight = (atomcountstactic +4) * cell_size +80;
+		Rectangle view = {0}; // et tomt rektangel, dette skal vores GuiscrollPanel udfylde. Det bliver det synlgie udsnit af indholdet. 
 
-	// hvor stort indholdet potentielt kan være - hvis content er større end bounds -> scrollbars kommer frem 
-	Rectangle content = {
-		0, 0,  // origin i panelet
-		contentWidth, 
-		contentHeight, 
-	}; 
+		GuiScrollPanel(bounds, "Adjacency Matrix", content, &scroll, &view); // tegnet scrollpanelets ramme, tegner scrollbarerene (vertikal og horizontal), opdaterer scroll.x og scroll.y i det at man scroller og returnerer i vew det område vi så må tegne i 
 
-	Rectangle view = {0}; // et tomt rektangel, dette skal vores GuiscrollPanel udfylde. Det bliver det synlgie udsnit af indholdet. 
+		//Tegn Matrizen inde i scroll panelet 
+		BeginScissorMode(view.x, view.y, view.width, view.height);
 
-	GuiScrollPanel(bounds, "Adjacency Matrix", content, &scroll, &view); // tegnet scrollpanelets ramme, tegner scrollbarerene (vertikal og horizontal), opdaterer scroll.x og scroll.y i det at man scroller og returnerer i vew det område vi så må tegne i 
+		// startposition for tegningen inde i panelet
+		double startX = bounds.x + 60 + scroll.x; // bounds = hvor panelet begynder på skærmen, plus lidt margin +60, og +scroll.x flytter indeholdet med scrollbaren. 
+		double startY = bounds.y + 40 + scroll.y; 
 
-	//
-	//Tegn Matrizen inde i scroll panelet 
-	//
-	BeginScissorMode(view.x, view.y, view.width, view.height);
-
-	// startposition for tegningen inde i panelet
-	double startX = bounds.x + 60 + scroll.x; // bounds = hvor panelet begynder på skærmen, plus lidt margin +60, og +scroll.x flytter indeholdet med scrollbaren. 
-	double startY = bounds.y + 40 + scroll.y; 
-
-	/** Eksempel på hvordan det virker. Lad os sige at vores scrollpanel ligger her bounds = {x=30, y=140, w=840, h=700} 
+		/** Eksempel på hvordan det virker. Lad os sige at vores scrollpanel ligger her bounds = {x=30, y=140, w=840, h=700} 
 	 * vi scroller nu 100 pixel ned 
 	 * scroll.y = -100 
 	 * så vil vores starty for denne frame være 
 	 * startY = 140+40+(-100) = 80
 	 * */
 
-	// vi laver et array udelukkende med atom symboler i rækkefølge således vi kan paste det ind
-	char smile_symbols[atomcountstactic];
-	fill_atom_symbols_from_smile(smilesInput, smile_symbols, atomcountstactic);
-	// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
-    for (int col = 0; col < atomcountstactic; col++) {
-        DrawText(TextFormat("%c", smile_symbols[col]), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
-            startX + (col +1)*cell_size, startY, 18, BLACK);
+		// vi laver et array udelukkende med atom symboler i rækkefølge således vi kan paste det ind
+		char smile_symbols[atomcountstactic];
+		fill_atom_symbols_from_smile(smilesInput, smile_symbols, atomcountstactic);
+		// jeg har her lavet en kolonne overskrift til at starte med, fordi så synes jeg det er nemmere at se ift om indeksering sker korrekt. Dette kan altid ændres
+		for (int col = 0; col < atomcountstactic; col++) {
+			DrawText(TextFormat("%c", smile_symbols[col]), // TEXT format er ligesom raylibs version af printf (nemmere sprintf).
+				startX + (col +1)*cell_size, startY, 18, BLACK);
+			// vi vil også gerne have en linje lige under.  der kan anvendes DrawLineEx (som anvender vector, men vi kan her vælge tykkelse derfor vælges denne).
+			// // de ekstra +20 jeg har sat på et grundet fontsize er 18 så vi skal forbi talenne.
+			DrawLineEx((Vector2){startX, startY+26}, (Vector2){startX +20+ (col +1)*cell_size, startY+26},2, BLACK);
+			DrawText(TextFormat("%d", col), startX + (col+1)*cell_size+12, startY+14, 4, BLACK);
 
-        // vi vil også gerne have en linje lige under.  der kan anvendes DrawLineEx (som anvender vector, men vi kan her vælge tykkelse derfor vælges denne).
-        // de ekstra +20 jeg har sat på et grundet fontsize er 18 så vi skal forbi talenne.
-        DrawLineEx((Vector2){startX, startY+26}, (Vector2){startX +20+ (col +1)*cell_size, startY+26},2, BLACK);
-	
-	DrawText(TextFormat("%d", col), 
-		startX + (col+1)*cell_size+12, startY+14,
-	  	4,
-	  	BLACK);
-	
-        DrawText(TextFormat("%c", smile_symbols[col]),
-                 80 + (24*(col+1)),
-                 startY + (atomcountstactic+2) * cell_size,
-                 18,
-                 DARKGRAY);
-	
-	DrawText(TextFormat("%d", col), 
-		90 + (24*(col+1)), 
-	  	startY+ 14 + (atomcountstactic+2) * cell_size,
-	  	1,
-	  	DARKGRAY);
-    }
-    // Række-overskrifter
-    for (int row = 0; row < atomcountstactic; row++) {
-        // Række-label
-        DrawText(TextFormat("%c", smile_symbols[row]),
-                 startX,
-                 startY + (row + 1) * cell_size,
-                 18,
-                 BLACK);
-	
-        DrawText(TextFormat("%d", row),
-                 startX+12,
-                 startY + (row + 1) * cell_size+14,
-                 4,
-                 BLACK);
+			DrawText(TextFormat("%c", smile_symbols[col]), 80 + (24*(col+1)), startY + (atomcountstactic+2) * cell_size, 18, DARKGRAY);
 
-        //linje for at adskille række label fremfor selve matrixen
-        DrawLineEx((Vector2){startX+26, startY+20}, (Vector2){startX+26, startY+20 + (row + 1) * cell_size},2, BLACK);
+			DrawText(TextFormat("%d", col), 90 + (24*(col+1)), startY+ 14 + (atomcountstactic+2) * cell_size, 1, DARKGRAY);
+		}
+		// Række-overskrifter
+		for (int row = 0; row < atomcountstactic; row++) {
+			// Række-label
+			DrawText(TextFormat("%c", smile_symbols[row]), startX, startY + (row + 1) * cell_size, 18, BLACK);	 
+			DrawText(TextFormat("%d", row), startX+12, startY + (row + 1) * cell_size+14, 4, BLACK);
+			//linje for at adskille række label fremfor selve matrixen
+			DrawLineEx((Vector2){startX+26, startY+20}, (Vector2){startX+26, startY+20 + (row + 1) * cell_size},2, BLACK);
+			// Celler i rækken
+			for (int col = 0; col < atomcountstactic; col++) {
+				int value = adjacency_matrix[row][col];
+				DrawText(TextFormat("%d", value),
+	     				startX+6 + (col + 1) * cell_size,
+	     				startY+6 + (row + 1) * cell_size,
+					18,
+					BLACK);
+			}
+		}
+		// lille forklarende tekst der forklarer atom count og hvilket input vi ser for:
+		DrawTextEx(uiFont,
+	     		"SMILES:",
+			(Vector2){30, startY + (atomcountstactic + 2) * cell_size},
+	     		18,
+			2,
+			DARKGRAY);
 
-
-        // Celler i rækken
-        for (int col = 0; col < atomcountstactic; col++) {
-            int value = adjacency_matrix[row][col];
-
-            DrawText(TextFormat("%d", value),
-                        startX+6 + (col + 1) * cell_size,
-                        startY+6 + (row + 1) * cell_size,
-                        18,
-                        BLACK);
-        }
-    }
-
-    // lille forklarende tekst der forklarer atom count og hvilket input vi ser for:
-   
-    DrawTextEx(uiFont,
-	       "SMILES:",
-               (Vector2){30, startY + (atomcountstactic + 2) * cell_size},
-               18,
-               2,
-               DARKGRAY);
-
-    DrawTextEx(uiFont,
-               TextFormat("Atoms: %d", atomcountstactic),
-               (Vector2){30, startY+ 35 + (atomcountstactic + 2) * cell_size},
-               18,
-               2,
-               DARKGRAY);
-	EndScissorMode(); 
+		DrawTextEx(uiFont,
+	     		TextFormat("Atoms: %d", atomcountstactic),
+			(Vector2){30, startY+ 35 + (atomcountstactic + 2) * cell_size},
+			18,
+			2,
+			DARKGRAY);
+		EndScissorMode(); 
 	}
 }
-void DrawTab_StabilityCheck()
-{
+
+/*
+ * DrawTab_StabilityCheck()
+ * Tab 2: Visualizes the valence check result for the current molecule.
+ *
+ * This tab runs run_valence_check() only once per validated molecule (val_flag + moleculeLoaded)
+ * and then renders each atom with:
+ *  - its symbol,
+ *  - its computed bond count,
+ *  - a VALID/ERROR label depending on illegalValence.
+ *
+ * A scroll panel is used so long molecules remain viewable.
+ */
+void DrawTab_StabilityCheck(){
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_stability_info);
+
+	if(show_stability_info){
+		DrawTextEx(uiFont,"Stability info Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			info_stability_text,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY
+		);
+	}
+	else {
+		DrawTextEx(uiFont,"Stability Check Tab", (Vector2){30, 80,}, 30,2, BLACK);
+		int radius =30;
+		int dist_to_increment = 3*radius;
+
+		// Scroll opsætning til matrixen 
+		static Vector2 scroll_stability = {0,0}; 
+		int screenW_stability = GetScreenWidth();
+		int screenH_stability = GetScreenHeight(); 
 	
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_stability_info);
+		Rectangle bounds_stability = {
+			30, 
+			220,
+			screenW_stability - 60, 
+			screenH_stability - 260,
+		}; 
+	
+		int contentWidth_stability =atomcountstactic * 90 +200; // bare en værdi jeg har trukket ud af hatten
+		int content_height_stability = 200+200; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
+	
+		Rectangle content_stability = {
+			0, 0,
+			contentWidth_stability, 
+			content_height_stability,
+		}; 
 
-    if(show_stability_info){
-        DrawTextEx(uiFont,"Stability info Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_stability_text,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
-        }
-    else {
-    DrawTextEx(uiFont,"Stability Check Tab", (Vector2){30, 80,}, 30,2, BLACK);
-    int radius =30;
-    int dist_to_increment = 3*radius;
-
-    /* jeg har valgt at kommenterer dette ud, jeg tror det gror på en fejl. create_adjacency kalder selv på
-     * find_adjacency. og create_adjacency forventer et array allkoeret med størrelse og ikke en tom pointer.
-     * jeg har derfor tilladt mig at ændrer i det.
-     *
-    int *adj = find_adjacency(smilesInput, atom_count);
-    create_adjacency_matrix(smilesInput, atom_count, adj);
-    */
-
+		Rectangle view_stability = {0}; 
+		GuiScrollPanel(bounds_stability, "Stability", content_stability, &scroll_stability, &view_stability); 
+		BeginScissorMode(view_stability.x, view_stability.y, view_stability.width, view_stability.height);
     
-	// Scroll opsætning til matrixen 
-	static Vector2 scroll_stability = {0,0}; 
-	int screenW_stability = GetScreenWidth();
-	int screenH_stability = GetScreenHeight(); 
-	
-	Rectangle bounds_stability = {
-		30, 
-		220,
-		screenW_stability - 60, 
-		screenH_stability - 260,
-	}; 
-	
-	int contentWidth_stability =atomcountstactic * 90 +200; // bare en værdi jeg har trukket ud af hatten
-	int content_height_stability = 200+200; // Den bruger tre linjer pr atom til at forklarer DFS. +80 for lidt margin
-	
-	Rectangle content_stability = {
-		0, 0,
-		contentWidth_stability, 
-		content_height_stability,
-	}; 
+		int y = bounds_stability.y + scroll_stability.y + 250; // 250 i margin til at starte med 
+		int x = bounds_stability.x + scroll_stability.x + 100; 
 
-	Rectangle view_stability = {0}; 
-
-	GuiScrollPanel(bounds_stability, "Stability", content_stability, &scroll_stability, &view_stability); 
-	
-	BeginScissorMode(view_stability.x, view_stability.y, view_stability.width, view_stability.height);
-    
-	int y = bounds_stability.y + scroll_stability.y + 250; // 250 i margin til at starte med 
-        int x = bounds_stability.x + scroll_stability.x + 100; 
-
-    int adj[atomcountstactic][atomcountstactic];
-    create_adjacency_matrix(smilesInput, atomcountstactic, adj);
-
-    // skal kun køre en gang, derfor sentinel TEST "C=O=C
-    if (!val_flag && inputValid && !moleculeLoaded) {
-        run_valence_check(count_atoms(smilesInput), smilesInput,adj);
-        val_flag = true;
-        moleculeLoaded = true;
-    }
-        if (moleculeLoaded && molecule != NULL && inputValid) {
-           for (int i = 0; i < smiles_input_size; i++) {
-            Color atomColor = BLACK;
-
-            if (isalpha(molecule[i].atomChar)){
-                char current = molecule[i].atomChar; // hold styr på nuværende atom(kun pga readability)
-                if (current == 'O') atomColor = RED;
-                if (current == 'N') atomColor = BLUE;
-                if (current == 'S') atomColor = YELLOW;
-                if (current == 'P') atomColor = ORANGE;
-                if (current == 'H') atomColor = WHITE;
-                DrawCircleLines(x, y, radius, atomColor); // tegn cirkel, x += i slutningen af loopet for at rykke cirkel
-                DrawTextEx(uiFont, TextFormat("%c", molecule[i].atomChar),
-                (Vector2){x - 4, y - 12}, 15, 2, BLACK); // atom karakter under
-                DrawText("Bonds", x-15, y+60, 10, BLACK); //antal bindinger under
-                DrawText(TextFormat("%d",  molecule[i].bondAmount),
-                x, y + 40, 10, BLACK);
-                if (molecule[i].illegalValence == 1) {
-                    DrawTextEx(uiFont,"ERROR", (Vector2){x-15, y+80,}, 15,2, softRed);
-                }
-                else {
-                    DrawTextEx(uiFont,"VALID", (Vector2){x-15, y+80,}, 15,2, DARKGREEN);
-                }
-                if (i < smiles_input_size - 1 && (molecule[i+1].atomChar == '-' || isalpha(molecule[i+1].atomChar))) {
-                    DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
-                }
-                if (i != smiles_input_size-1 && molecule[i+1].atomChar == '=') {
-                    DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
-                    DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
-                }
-                if (i != smiles_input_size-1 && molecule[i+1].atomChar == '#') {
-                    DrawLine(x+radius,y+4,x+dist_to_increment-radius,y+4,BLACK);
-                    DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
-                    DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
-                }
-                x+= dist_to_increment;
-           }
-
-           }
-        }
-
+		int adj[atomcountstactic][atomcountstactic];
+		create_adjacency_matrix(smilesInput, atomcountstactic, adj);
+		// skal kun køre en gang, derfor sentinel TEST "C=O=C
+		if (!val_flag && inputValid && !moleculeLoaded) {
+			run_valence_check(&molecule, smile_size, atomcountstactic, smilesInput, adj);
+			val_flag = true;
+			moleculeLoaded = true;
+		}
+		if (moleculeLoaded && molecule != NULL && inputValid) {
+			for (int i = 0; i < smile_size; i++) {
+				Color atomColor = BLACK;
+				if (isalpha(molecule[i].atomChar)){
+					char current = molecule[i].atomChar; // hold styr på nuværende atom(kun pga readability)
+					if (current == 'O') atomColor = RED;
+					if (current == 'N') atomColor = BLUE;
+					if (current == 'S') atomColor = YELLOW;
+					if (current == 'P') atomColor = ORANGE;
+					if (current == 'H') atomColor = WHITE;
+					DrawCircleLines(x, y, radius, atomColor); // tegn cirkel, x += i slutningen af loopet for at rykke cirkel
+					DrawTextEx(uiFont, TextFormat("%c", molecule[i].atomChar),
+						(Vector2){x - 4, y - 12}, 15, 2, BLACK); // atom karakter under
+					DrawText("Bonds", x-15, y+60, 10, BLACK); //antal bindinger under
+					DrawText(TextFormat("%d",  molecule[i].bondAmount),
+						x, y + 40, 10, BLACK);
+					if (molecule[i].illegalValence == 1) {
+						DrawTextEx(uiFont,"ERROR", (Vector2){x-15, y+80,}, 15,2, softRed);
+					}
+					else {
+						DrawTextEx(uiFont,"VALID", (Vector2){x-15, y+80,}, 15,2, DARKGREEN);
+					}
+					if (i < count_smiles(smilesInput) - 1 && (molecule[i+1].atomChar == '-' || isalpha(molecule[i+1].atomChar))) {
+						DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
+					}
+					if (i != count_smiles(smilesInput)-1 && molecule[i+1].atomChar == '=') {
+						DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
+						DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
+					}
+					if (i != count_smiles(smilesInput)-1 && molecule[i+1].atomChar == '#') {
+						DrawLine(x+radius,y+4,x+dist_to_increment-radius,y+4,BLACK);
+						DrawLine(x+radius,y+2,x+dist_to_increment-radius,y+2,BLACK);
+						DrawLine(x+radius,y,x+dist_to_increment-radius,y,BLACK);
+					}
+					x+= dist_to_increment;
+				}
+			}
+		}
 		EndScissorMode(); 
 	}
 }
@@ -809,17 +745,15 @@ void DrawTab_StabilityCheck()
  * int bfs[] is our array that we input into
  * */
 int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, int bfs[]) {
-    int visited[n]; //matrix for keeping track of visited nodes. The node is equal to subscript and is indicated if visited with 0 or 1.
-    for (int i = 0; i < n; i++) {
-        visited[i] = 0;
-    }
-    int queue[n]; // queue is an array consisting of the elements we have seen but not yet visited
-    int front = 0, rear = 0; //
-    /* front is how many times we have dequeued an element from the queue. so actually how far BFS has come in the queue
-     * rear moves when we add to the queue. rear = number of elements in queue + front*/
-
-    int count = 0; // counts how many nodes we have visited.
-    
+	int visited[n]; //matrix for keeping track of visited nodes. The node is equal to subscript and is indicated if visited with 0 or 1.
+	for (int i = 0; i < n; i++) {
+		visited[i] = 0;
+	}
+	int queue[n]; // queue is an array consisting of the elements we have seen but not yet visited
+	int front = 0, rear = 0; //
+	/* front is how many times we have dequeued an element from the queue. so actually how far BFS has come in the queue
+	 * * rear moves when we add to the queue. rear = number of elements in queue + front*/
+	int count = 0; // counts how many nodes we have visited.
 	// Scroll opsætning til matrixen 
 	static Vector2 scroll_bfs = {0,0}; 
 	int screenW_bfs = GetScreenWidth();
@@ -849,172 +783,161 @@ int bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(int n, const int adj[n][n], int src, 
     
 	int lineheight = bounds_bfs.y + scroll_bfs.y + 30; // 20 i margin til at starte med 
         int x_bfs = bounds_bfs.x + scroll_bfs.x + 10; 
-    DrawText(TextFormat("Our start node is %d", src), x_bfs, lineheight, 20, BLACK);
-    lineheight += 20;
-    visited[src] = 1;
-    queue[rear++] = src; // we set queue[back (here 0)] = src, and since we have added an element to the queue then increments back to 1.
+	DrawText(TextFormat("Our start node is %d", src), x_bfs, lineheight, 20, BLACK);
+	lineheight += 20;
+	visited[src] = 1;
+	queue[rear++] = src; // we set queue[back (here 0)] = src, and since we have added an element to the queue then increments back to 1.
 
-    int dont_print_bfs_list_on_first = 1;
-    while ( front < rear ) {
-        // the following is simply for printing the bfs.
-        int no_comma_on_first = 1;
-
+	int dont_print_bfs_list_on_first = 1;
+	while ( front < rear ) {
+		// the following is simply for printing the bfs.
+		int no_comma_on_first = 1;
         // Print BFS-listen efter første iteration
 
-        if (!dont_print_bfs_list_on_first) {
-            char bfsLine[256];
-            int offset = snprintf(bfsLine, sizeof(bfsLine),
-                                  "BFS list currently: {");
+		if (!dont_print_bfs_list_on_first) {
+			char bfsLine[256];
+			int offset = snprintf(bfsLine, sizeof(bfsLine),
+			 "BFS list currently: {");
+			for (int j = 0; j < count; j++) {
+				offset += snprintf(bfsLine + offset,
+		       			sizeof(bfsLine) - offset,
+		       			"%s%d",
+		       			(j == 0 ? "" : ", "),
+		       			bfs[j]);
+			}
+			snprintf(bfsLine + offset, sizeof(bfsLine) - offset, "}");
 
-            for (int j = 0; j < count; j++) {
-                offset += snprintf(bfsLine + offset,
-                                   sizeof(bfsLine) - offset,
-                                   "%s%d",
-                                   (j == 0 ? "" : ", "),
-                                   bfs[j]);
-            }
+			DrawText(bfsLine, x_bfs, lineheight, 20, BLACK);
+			lineheight += 20;
+		}
+		dont_print_bfs_list_on_first = 0;
 
-            snprintf(bfsLine + offset,
-                     sizeof(bfsLine) - offset,
-                     "}");
-
-            DrawText(bfsLine, x_bfs, lineheight, 20, BLACK);
-            lineheight += 20;
-        }
-        dont_print_bfs_list_on_first = 0;
-
-        // and here we print our queue
-        char queueLine[256];
-        int qOff = snprintf(queueLine, sizeof(queueLine),
+		// and here we print our queue
+		char queueLine[256];
+		int qOff = snprintf(queueLine, sizeof(queueLine),
                             "In our queue we currently have the following: {");
 
-        no_comma_on_first = 1;
-        for (int i = front; i < rear; i++) {
-            qOff += snprintf(queueLine + qOff,
-                             sizeof(queueLine) - qOff,
-                             "%s%d",
-                             (no_comma_on_first ? "" : ", "),
-                             queue[i]);
-            no_comma_on_first = 0;
-        }
+		no_comma_on_first = 1;
+		for (int i = front; i < rear; i++) {
+			qOff += snprintf(queueLine + qOff,
+		    		sizeof(queueLine) - qOff,
+		    		"%s%d",
+		    		(no_comma_on_first ? "" : ", "),
+		    		queue[i]);
+			no_comma_on_first = 0;
+		}
+		snprintf(queueLine + qOff, sizeof(queueLine) - qOff, "}");
+		DrawText(queueLine, x_bfs, lineheight, 20, BLACK);
+		lineheight += 20;
+		int u = queue[front]; // The first time, queue[0] is set equal to u. U will be used to determine the first element in our array.
+		front++; //we now increment our front by 1, since we have just dequeued to u
+		bfs[count] = u; // our queue element which is in u is an element in bfs.
+		count++; // we have added a node and therefore our count is advanced.
+		char visitLine[256];
+		int vOff = snprintf(visitLine, sizeof(visitLine),
+		      "We are visiting node %d and it is connected to unvisited elements: {",
+		      u);
+		no_comma_on_first = 1;
+		for (int v = 0; v < n; v++) {
+			if (adj[u][v] >= 1 && visited[v] == 0) {
+				visited[v] = 1;
+				queue[rear++] = v;
+				vOff += snprintf(visitLine + vOff,
+		     			sizeof(visitLine) - vOff,
+		     			"%s%d",
+		     			(no_comma_on_first ? "" : ", "),
+		     			v);
+				no_comma_on_first = 0;
+			}
+		}
 
-        snprintf(queueLine + qOff,
-                 sizeof(queueLine) - qOff,
-                 "}");
-
-        DrawText(queueLine, x_bfs, lineheight, 20, BLACK);
-        lineheight += 20;
-
-        int u = queue[front]; // The first time, queue[0] is set equal to u. U will be used to determine the first element in our array.
-        front++; //we now increment our front by 1, since we have just dequeued to u.
-        bfs[count] = u; // our queue element which is in u is an element in bfs.
-        count++; // we have added a node and therefore our count is advanced.
-        char visitLine[256];
-        int vOff = snprintf(visitLine, sizeof(visitLine),
-                            "We are visiting node %d and it is connected to unvisited elements: {",
-                            u);
-
-        no_comma_on_first = 1;
-        for (int v = 0; v < n; v++) {
-            if (adj[u][v] >= 1 && visited[v] == 0) {
-                visited[v] = 1;
-                queue[rear++] = v;
-
-                vOff += snprintf(visitLine + vOff,
-                                 sizeof(visitLine) - vOff,
-                                 "%s%d",
-                                 (no_comma_on_first ? "" : ", "),
-                                 v);
-                no_comma_on_first = 0;
-            }
-        }
-
-        snprintf(visitLine + vOff,
-                 sizeof(visitLine) - vOff,
-                 "}");
-
-        DrawText(visitLine, x_bfs, lineheight, 20, BLACK);
-        lineheight += 20;
-    }
-    EndScissorMode(); 
-
-    return count; // number of visited nodes - a quick way to see if visited = n, if they are then the molecule is complete.
-
+		snprintf(visitLine + vOff,
+	   		sizeof(visitLine) - vOff,
+	   		"}");
+		DrawText(visitLine, x_bfs, lineheight, 20, BLACK);
+		lineheight += 20;
+	}
+	EndScissorMode(); 
+	return count; // number of visited nodes - a quick way to see if visited = n, if they are then the molecule is complete.
 }
 
-
+/*
+ * dfs_matrix_onlyforgui()
+ * Recursive DFS implementation used ONLY for GUI explanation output.
+ *
+ * It logs each DFS step (visit, neighbour list, recursion, backtracking) by drawing
+ * text lines, and it records:
+ *  - dfsmatrix[] traversal order,
+ *  - visited[] markers,
+ *  - parent[] tree,
+ *  - cycles[][] (simple undirected back-edge detection for already-visited neighbours).
+ *
+ * pLineHeight is used as a "cursor" for where the next explanation line should be drawn.
+ *
+ * Returns the number of visited nodes so far (count).
+ */
 int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[], int cycles[][2], int *cycle_count, int count, int *pLineHeight, int baseX, int baseY) {
     // we mark node as visited, by using our matrix visited, we also insert ved node into the bfs matrix for the "list" of traversal.
 
+	visited[startnode] = 1;
+	dfsmatrix[count++] = startnode;
 
-    visited[startnode] = 1;
-    dfsmatrix[count++] = startnode;
-
-    // Tekst: "We mark: X as visited and add it to our list. and its neighbours are { ... }"
-    char line[256];
-    int offset = snprintf(line, sizeof(line),
+	// Tekst: "We mark: X as visited and add it to our list. and its neighbours are { ... }"
+	char line[256];
+	int offset = snprintf(line, sizeof(line),
                           "We mark: %d as visited and add it to our list. and its neighbours are { ",
                           startnode);
 
-    int no_comma_on_first = 1;
-    for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] >= 1) {
-            offset += snprintf(line + offset,
+	int no_comma_on_first = 1;
+	for (int i = 0; i < n; i++) {
+		if (adj[startnode][i] >= 1) {
+			offset += snprintf(line + offset,
                                sizeof(line) - offset,
                                "%s%d",
                                (no_comma_on_first ? "" : ", "),
                                i);
-            no_comma_on_first = 0;
-        }
-    }
-    snprintf(line + offset, sizeof(line) - offset, " }");
+			no_comma_on_first = 0;
+		}
+	}
+	snprintf(line + offset, sizeof(line) - offset, " }");
+	DrawText(line, baseX, baseY + *pLineHeight, 20, BLACK);
+	*pLineHeight += 20;
 
-    DrawText(line, baseX, baseY + *pLineHeight, 20, BLACK);
-    *pLineHeight += 20;
+	// 2) Gå igennem naboer – DFS step + forklarende tekst
+	for (int i = 0; i < n; i++) {
+		if (adj[startnode][i] >= 1 && visited[i] != 1) {
+			// Tekst: "we are now going to visit i. Our DFS list consist of: { ... }"
+			char dfsListLine[256];
+			int off = snprintf(dfsListLine, sizeof(dfsListLine),
+		      		"We are now going to visit %d. Our DFS list consist of: { ",
+				i);
 
-    // 2) Gå igennem naboer – DFS step + forklarende tekst
-    for (int i = 0; i < n; i++) {
-        if (adj[startnode][i] >= 1 && visited[i] != 1) {
-            // Tekst: "we are now going to visit i. Our DFS list consist of: { ... }"
-            char dfsListLine[256];
-            int off = snprintf(dfsListLine, sizeof(dfsListLine),
-                               "We are now going to visit %d. Our DFS list consist of: { ",
-                               i);
-
-            int first = 1;
-            for (int j = 0; j < count; j++) {
-                off += snprintf(dfsListLine + off,
-                                sizeof(dfsListLine) - off,
-                                "%s%d",
-                                (first ? "" : ", "),
-                                dfsmatrix[j]);
-                first = 0;
-            }
-            snprintf(dfsListLine + off, sizeof(dfsListLine) - off, " }");
-
-            DrawText(dfsListLine, baseX, baseY + *pLineHeight, 20, BLACK);
-            *pLineHeight += 20;
-
-            parent[i] = startnode;
-            count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, cycles, cycle_count, count, pLineHeight, baseX, baseY);
-        }
+			int first = 1;
+			for (int j = 0; j < count; j++) {
+				off += snprintf(dfsListLine + off, sizeof(dfsListLine) - off, "%s%d", (first ? "" : ", "), dfsmatrix[j]);
+				first = 0;
+			}
+			snprintf(dfsListLine + off, sizeof(dfsListLine) - off, " }");
+			DrawText(dfsListLine, baseX, baseY + *pLineHeight, 20, BLACK);
+			*pLineHeight += 20;
+			parent[i] = startnode;
+			count = dfs_matrix_onlyforgui(i, n, adj, dfsmatrix, visited, parent, cycles, cycle_count, count, pLineHeight, baseX, baseY);
+		}
         /* we can check here if there is a cycle! We can do this because we know that if we traverse the neighbors of a node,
          * and we find a neighbor who has already been visited, and that this is not our "parents", i.e. where we came from, then we have a
          * cycle in which we can then go back. We can set this up as the following conditions
          * however, I have added an extra condition, namely that startnode < i, because then it will only be detected once :) otherwise you will
          * make it detect first around to the right, and then also where you go left, i.e. detect 1 --> 3 and then 3 --> 1.
          */
-        else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
-            char cycleLine[256];
-		int already_seen = 0; 
-
+		else if (adj[startnode][i] >= 1 && visited[i] == 1 && i != parent[startnode] && startnode < i) {
+			char cycleLine[256];
+			int already_seen = 0; 
 			for (int k = 0; k < *cycle_count; k++){
-			if ( (cycles[k][0] == startnode && cycles[k][1] == i) || cycles[k][1] == startnode && cycles[k][0] == i){
+				if ( (cycles[k][0] == startnode && cycles[k][1] == i) || cycles[k][1] == startnode && cycles[k][0] == i){
 					already_seen = 1; 
 					break; 
 				}
 			}
-
 			if (already_seen == 0){
 				cycles[*cycle_count][0] = startnode; 
 				cycles[*cycle_count][1] = i;
@@ -1035,474 +958,490 @@ int dfs_matrix_onlyforgui(int startnode, int n, const int adj[n][n], int dfsmatr
 		}
     }
 
-    // 3) Backtracking-tekst
-    if (parent[startnode] != -1) {
-        char backLine[256];
-        snprintf(backLine, sizeof(backLine),
-                 "Since all neighbours of %d are now visited, we backtrack to node %d.",
-                 startnode, parent[startnode]);
-        DrawText(backLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
-        *pLineHeight += 20;
-    } else {
-        char doneLine[256];
-        snprintf(doneLine, sizeof(doneLine),
-                 "Since all neighbours of %d are now visited, DFS from the root is complete here.",
-                 startnode);
-        DrawText(doneLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
-        *pLineHeight += 20;
-    }
-    return count;
+	// 3) Backtracking-tekst
+	if (parent[startnode] != -1) {
+		char backLine[256];
+		snprintf(backLine, sizeof(backLine), "Since all neighbours of %d are now visited, we backtrack to node %d.", startnode, parent[startnode]);
+		DrawText(backLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
+		*pLineHeight += 20;
+	} else {
+		char doneLine[256];
+		snprintf(doneLine, sizeof(doneLine), "Since all neighbours of %d are now visited, DFS from the root is complete here.", startnode);
+		DrawText(doneLine, baseX, baseY + *pLineHeight, 20, DARKGRAY);
+		*pLineHeight += 20;
+	}
+	return count;
 }
 
-
+/*
+ * DrawTab_AlgorithmVisualization()
+ * Tab 3: Lets the user run and view step-by-step BFS or DFS explanations.
+ *
+ * The user triggers either algorithm via a button:
+ *  - "Run BFS" -> prints queue states and visited nodes
+ *  - "Run DFS" -> prints recursion/backtracking and cycle detection messages
+ *
+ * Requires inputValid = true; otherwise the tab shows a message and returns early.
+ */
 void DrawTab_AlgorithmVisualization() {
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_algorithms_info);
 
+	if(show_algorithms_info){
+		DrawTextEx(uiFont,"Algorithm Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(uiFont, info_algorithm_text, (Rectangle){ 40, 140, 820, 900 }, // x, y, width, height
+		22, 2, true, DARKGRAY);
+	}
+	else {
+		//tegner blot titlen
+		DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
 
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_algorithms_info);
+		// det er også et krav her at der et gyldigt input. den returner altså man kan ikke trykke på noget her.
+		if (!inputValid) {
+			DrawText("Please enter a valid SMILES on the first tab.", 30, 130, 20, RED);
+			return;
+		}
 
-    if(show_algorithms_info){
-        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_algorithm_text,
-        (Rectangle){ 40, 140, 820, 900 }, // x, y, width, height
-        22,
-        2,
-        true,
-        DARKGRAY
-         );
-        }
-    else {
+		// Knap til at starte BFS
+		// // har lavet en variabel der hedder bfsRan (defineret på linje 118) den gør at teksten afhænger om man har kørt BFS eller ikke. Hvis true så står der run BFS again, hvis false (standard) så står der blot BFS run.
+		if (GuiButton((Rectangle){30, 130, 160, 30}, bfsRan ? "Run BFS again" : "Run BFS")) {
+			bfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
+			dfsRan = false;
+		}
+		// Knap til starte DFS
+		if (GuiButton((Rectangle){200, 130, 160, 30}, dfsRan ? "Run DFS again" : "Run DFS")) {
+			bfsRan = false;
+			dfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
+		}
 
-    //tegner blot titlen
-    DrawText("Algorithm Visualization Tab", 30, 80, 25, BLACK);
+		if (!bfsRan && !dfsRan ) {
+			DrawText("Press 'Run BFS' or 'Run DFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
+			return;
+		}
 
-    // det er også et krav her at der et gyldigt input. den returner altså man kan ikke trykke på noget her.
-    if (!inputValid) {
-        DrawText("Please enter a valid SMILES on the first tab.", 30, 130, 20, RED);
-        return;
-    }
+		//hvis vi kommer hertil så er det fordi bfsRan er true.
+		if (bfsRan) {
+			// vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
+			if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+				bfsLog[0] = '\0';
+				bfsCount = 0;
+				bfsRan = false;
+				return;
+			}
+			if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
+			// Lav VLA adjacency matrix
+			int adjacency_matrix[atomcountstactic][atomcountstactic];
+			int bfs[atomcountstactic];
+			create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+			bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atomcountstactic, adjacency_matrix, 0, bfs);
+		}
+		if (dfsRan) {
+			// vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
 
-    // Knap til at starte BFS
-    // har lavet en variabel der hedder bfsRan (defineret på linje 118) den gør at teksten afhænger om man har kørt BFS eller ikke. Hvis true så står der run BFS again, hvis false (standard) så står der blot BFS run.
-    if (GuiButton((Rectangle){30, 130, 160, 30}, bfsRan ? "Run BFS again" : "Run BFS")) {
-        bfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
-        dfsRan = false;
-    }
+			if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
+				bfsLog[0] = '\0';
+				bfsCount = 0;
+				bfsRan = false;
+				return;
+			}
+			if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
+			// // Lav VLA adjacency matrix
 
-    // Knap til starte DFS
-    if (GuiButton((Rectangle){200, 130, 160, 30}, dfsRan ? "Run DFS again" : "Run DFS")) {
-        bfsRan = false;
-        dfsRan = true; // sættes til true så resten af UI'et ved at vi har fået et resultat.
-    }
-
-
-    if (!bfsRan && !dfsRan ) {
-        DrawText("Press 'Run BFS' or 'Run DFS' to generate traversal and explanation.", 30, 190, 20, DARKGRAY);
-        return;
-    }
-
-    //hvis vi kommer hertil så er det fordi bfsRan er true.
-    if (bfsRan) {
-        // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
-            bfsLog[0] = '\0';
-            bfsCount = 0;
-            bfsRan = false;
-            return;
-        }
-        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
-
-        // Lav VLA adjacency matrix
-        int adjacency_matrix[atomcountstactic][atomcountstactic];
-        int bfs[atomcountstactic];
-        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
-        bfs_matrix_drawtext_ONLYFORUSEINRAYGUI(atomcountstactic, adjacency_matrix, 0, bfs);
-    }
-
-    if (dfsRan) {
-        // vi skal have lavet vores adjacency matrixe ( ikke sikkert at vi har været forbi tabben adjacency matrix).
-        if (atomcountstactic <= 0) { // blot en lille sikring er egentlig irrelevant da hvis ingen valid input så kommer man aldrig hertil
-            bfsLog[0] = '\0';
-            bfsCount = 0;
-            bfsRan = false;
-            return;
-        }
-        if (atomcountstactic > MAX_ATOMS) atomcountstactic = MAX_ATOMS;  // sikkerhed
-
-        // Lav VLA adjacency matrix
-        int adjacency_matrix[atomcountstactic][atomcountstactic];
-        create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
-        int dfsmatrix[atomcountstactic];
-        int visited[atomcountstactic];
-        int parent[atomcountstactic];
-
-	int cycle_count = 0; 
-	int cycles[atomcountstactic][2];
+			int adjacency_matrix[atomcountstactic][atomcountstactic];
+			create_adjacency_matrix(smilesInput, atomcountstactic, adjacency_matrix);
+			int dfsmatrix[atomcountstactic];
+			int visited[atomcountstactic];
+			int parent[atomcountstactic];
+			int cycle_count = 0; 
+			int cycles[atomcountstactic][2];
 		
-        for (int i = 0; i < atomcountstactic; i++) {
-            parent[i] = -1;
-        }
+			for (int i = 0; i < atomcountstactic; i++) {
+				parent[i] = -1;
+			}
 
-	  static Vector2 scrollDFS = { 0, 0 };
+			static Vector2 scrollDFS = { 0, 0 };
+			int screenW = GetScreenWidth();
+			int screenH = GetScreenHeight();
 
-    	int screenW = GetScreenWidth();
-    	int screenH = GetScreenHeight();
+			Rectangle bounds = (Rectangle){ 30,
+				220,             // lige under knapperne
+				screenW - 60,
+				screenH - 260
+			};
 
-    	Rectangle bounds = (Rectangle){
-       	 	30,
-       		 220,             // lige under knapperne
-        	screenW - 60,
-        	screenH - 260
-    	};
+			// Hvor meget tekst DFS max kan lave:
+			// // groft: ~3 linjer per node + lidt ekstra
+			int contentHeight = 3 * 20 * atomcountstactic + 200;  // 20 px pr linje
+			int contentWidth  = 900 + atomcountstactic*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
 
-    	// Hvor meget tekst DFS max kan lave:
-    	// groft: ~3 linjer per node + lidt ekstra
-    	int contentHeight = 3 * 20 * atomcountstactic + 200;  // 20 px pr linje
-    	int contentWidth  = 900 + atomcountstactic*20;              // bare noget fornuftigt, DFS-tekst er mest vertikal
+			Rectangle content = (Rectangle){
+				0, 0,
+				contentWidth,
+				contentHeight
+			};
+			Rectangle view = {0};
 
-    	Rectangle content = (Rectangle){
-        0, 0,
-        contentWidth,
-        contentHeight
-    	};
+			GuiScrollPanel(bounds, "DFS explanation", content, &scrollDFS, &view);
 
-   	 Rectangle view = {0};
+			BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
 
-   	 GuiScrollPanel(bounds, "DFS explanation", content, &scrollDFS, &view);
+			int lineHeight = 0;
 
-    	BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+			int baseX = (int)(bounds.x + 10 + scrollDFS.x);
+			int baseY = (int)(bounds.y + 30 + scrollDFS.y);
 
-    	int lineHeight = 0;
+			int startnode = 0; // eller hvad du bruger som root
+			int count = 0;
+			int atom_count = count_atoms(smilesInput);
 
-    	int baseX = (int)(bounds.x + 10 + scrollDFS.x);
-    	int baseY = (int)(bounds.y + 30 + scrollDFS.y);
-
-    	int startnode = 0; // eller hvad du bruger som root
-    	int count = 0;
-
-    	count = dfs_matrix_onlyforgui(
-        	startnode,
-       		atom_count,
-        	adjacency_matrix,
-        	dfsmatrix,
-        	visited,
-        	parent,
-        	cycles,
-        	&cycle_count,
-        	count,
-        	&lineHeight,
-        	baseX,
-        	baseY
-    );
-
-    EndScissorMode();
-
-    }
+			count = dfs_matrix_onlyforgui(
+				startnode,
+				atom_count,
+				adjacency_matrix,
+				dfsmatrix,
+				visited,
+				parent,
+				cycles,
+				&cycle_count,
+				count,
+				&lineHeight,
+				baseX,
+				baseY
+			);
+			EndScissorMode();
+		}
 	}
 
 
 }
 
-
+/*
+ * DrawTab_GraphView()
+ * Tab 4: Renders a 2D visual graph layout of the molecule:
+ *  - adjacency matrix provides bond connections and bond order
+ *  - node features provide atom types for coloring (C/O/N etc.)
+ *
+ * To avoid recomputing cycles/DFS every frame, the tab caches cycle_count
+ * and uses graphComputed as a one-shot flag per validated input.
+ */
 void DrawTab_GraphView(){
-	
-	
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_graph_view_info);
-
-    if(show_graph_view_info){
-        DrawTextEx(uiFont,"Graph Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_graph_text,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
-        }
-    else {
-
-    DrawText("Graph View Tab", 30, 80, 25, BLACK);
-	if (!inputValid) {
-		DrawTextEx(uiFont,
-			"Please enter and validate a valid SMILES in the Input tab first.",
-			(Vector2){30,160}, 18,2, RED);
-		return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_graph_view_info);
+	if(show_graph_view_info){
+		DrawTextEx(uiFont,"Graph Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			info_graph_text,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY
+		);
 	}
-	// Explaining the color of atom
-	int legend_y = 93; 
-	int x = 260; 
-	int gap_Circle_to_text = 4; 
-	int gap_group = 75; 
-	// C (black) 
-	DrawCircle(x,legend_y, RADIUS, BLACK);
-	DrawText(":C", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
-	
-	// O (red) 
-	x += gap_group;
-	DrawCircle(x,legend_y, RADIUS, RED);
-	DrawText(":O", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+	else {
+		DrawText("Graph View Tab", 30, 80, 25, BLACK);
+		if (!inputValid) {
+			DrawTextEx(uiFont,
+	      			"Please enter and validate a valid SMILES in the Input tab first.",
+				(Vector2){30,160}, 18,2, RED);
+			return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+			}
+		// Explaining the color of atom
+		int legend_y = 93; 
+		int x = 260; 
+		int gap_Circle_to_text = 4; 
+		int gap_group = 75; 
+		// C (black) 
+		DrawCircle(x,legend_y, RADIUS, BLACK);
+		DrawText(":C", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+		// O (red) 
+		x += gap_group;
+		DrawCircle(x,legend_y, RADIUS, RED);
+		DrawText(":O", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+		// N (blue) 
+		x += gap_group;
+		DrawCircle(x,legend_y, RADIUS, BLUE);
+		DrawText(":N", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
+		int adjacency_matrix[atomcountstactic][atomcountstactic];
+		create_adjacency_matrix(smilesInput,atomcountstactic,adjacency_matrix);
+		int dfsmatrix[atomcountstactic];
+		int visited[atomcountstactic];
+		int parent[atomcountstactic];
+		int cycle_count = 0;
+		int cycles[atomcountstactic][2];
+		int startnode = 0; // eller hvad du bruger som root
+		int count = 0;
+		for (int i = 0; i < atomcountstactic; i++) {
+			visited[i] = 0;
+			parent[i] = -1;
+		}
+		if (!graphComputed){
+			cycle_count = 0; 
+			dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
+			cached_cycle_count = cycle_count;
+			graphComputed = true; 
+		}
+		char atoms[MAX_ATOMS][3] = {0};
+		double node_matrix[atomcountstactic][MAX_FEATURES];
+		int n_atoms = parse_SMILES(smilesInput, atoms, &error_count, errors);
+		if (n_atoms <= 0) {
+			DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
+			return;
+		}
+		build_node_matrix(atoms, n_atoms, node_matrix, &error_count, errors);
 
-	// N (blue) 
-	x += gap_group;
-	DrawCircle(x,legend_y, RADIUS, BLUE);
-	DrawText(":N", x + RADIUS + gap_Circle_to_text, legend_y - 10, 20, BLACK); 
-	
-	int adjacency_matrix[atomcountstactic][atomcountstactic];
+		/* The following is for scrolling purpose (see adjacency and nodetab for same layout */ 
+		static Vector2 scroll_graph = {0,0}; 
+		int screenW = GetScreenWidth();
+		int screenH = GetScreenHeight(); 
 
-	create_adjacency_matrix(smilesInput,atomcountstactic,adjacency_matrix);
+		Rectangle bounds = {
+			30,
+			140,
+			screenW - 60,
+			screenH - 180}; 
 
-	int dfsmatrix[atomcountstactic];
-	int visited[atomcountstactic];
-	int parent[atomcountstactic];
-	int cycle_count = 0;
-	int cycles[atomcountstactic][2];
-	int startnode = 0; // eller hvad du bruger som root
-	int count = 0;
+		// content must just be "big enough" - we here use 5000x5000. remember we can only see a smaller rectangular "bounds" area visible on screen
+		Rectangle content = {
+			0, 0, 
+			5000, 5000}; 
 
-	for (int i = 0; i < atomcountstactic; i++) {
-    		visited[i] = 0;
-    		parent[i] = -1;
-	}
+		Rectangle view = {0}; 
 
-	if (!graphComputed){
-		cycle_count = 0; 
-		dfs_matrix(startnode,atomcountstactic,adjacency_matrix,dfsmatrix,visited,parent,cycles, &cycle_count,count);
-		cached_cycle_count = cycle_count;
-		graphComputed = true; 
-	}
+		/* in raygui, the scroll vector does NOT movethe view. instead it offsets the content behind the view. A negative scroll value moves the content left or up. 
+		 * If scroll is initialized to (0,0), the view will start in the top-left corner of the content, meaning the user can only scroll down or right. This is problematic 
+		 * for our graph_view since in rings it can extend in any direction the rotate function decides. 
+		 * To offset this we initialize the scroll vector so that the visible view starts centered in the content area. 
+		 * I have come to the conclusion that center is 
+		 * content_center = (contentWidth /2, contentHeight / 2) 
+		 * view center = (bounds.width /2, bounds.height/2) 
+		 *
+		 * The scroll offset is set tothe negative difference between these centers. this places the "camera" at the center of the content, allowing the user to scroll up,down, left and right.
+		 * This initialization must only run once (or whenwe press clear or input a new molecule) 
+		 * */
+		static int scroll_init = 0; 
+		// initialise only once - start "centered" 
+		if (!scroll_init) {
+			scroll_graph.x = -(5000/2 - bounds.width/2);
+			scroll_graph.y = -(5000/2 - bounds.height/2);
+			scroll_init = 1; 
+		}
 
-    	char atoms[MAX_ATOMS][3] = {0};
-    	double node_matrix[atomcountstactic][MAX_FEATURES];
-    	int n_atoms = parse_SMILES(smilesInput, atoms);
-	if (n_atoms <= 0) {
-        	DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
-        	return;
-    	}
 
-    	build_node_matrix(atoms, n_atoms, node_matrix);
-	draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix);
+		GuiScrollPanel(bounds, "Graph view", content, &scroll_graph, &view);
+		BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
 
+		Vector2 origin = {
+			view.x + (5000/2) + scroll_graph.x, view.y + (5000/2) + scroll_graph.y }; 
+
+
+		draw_molecule(smilesInput, atomcountstactic, adjacency_matrix,cached_cycle_count, node_matrix, origin);
+
+		EndScissorMode();
 	}
 }
 
+/*
+ * DrawTab_Substructures()
+ * Tab 5: Tests whether a user-provided substructure (toxicophore) exists inside
+ * the current main SMILES molecule.
+ *
+ * The result is displayed as either success (green) or failure (red).
+ * Requires a valid main SMILES input.
+ */
 void DrawTab_Substructures(){
 
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_substructures_info);
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_substructures_info);
 
-    if(show_substructures_info){
-        DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_substructures_text,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
-        }
-    else {
-
-	DrawText("Find Substructures (toxicphores) in the molecule", 30, 80, 25, BLACK);
-
-    // Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
-    if (!inputValid) {
-        DrawTextEx(uiFont,
-            "Please enter and validate a valid SMILES in the Input tab first.",
-            (Vector2){30,160}, 18,2, RED);
-        return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
-    }
-
-	// vi skal have lavet et input felt ligesom i "input validation" til at input vores substructure smile 
-	GuiLabel((Rectangle){30, 160, 150, 25}, "Substructure input:");
-
-	//Teksboks til input
-	if (GuiTextBox((Rectangle){220, 160, 300, 25}, substructures_input, 256, editMode)) {
-		editMode = !editMode; 
+	if(show_substructures_info){
+		DrawTextEx(uiFont,"Input Validation Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			info_substructures_text,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY
+		);
 	}
+	else {
+		DrawText("Find Substructures (toxicphores) in the molecule", 30, 80, 25, BLACK);
+		// Hvis input ikke er gyldigt, giver det ingen mening at vise matrix
+		if (!inputValid) {
+			DrawTextEx(uiFont,
+	      		"Please enter and validate a valid SMILES in the Input tab first.",
+	      		(Vector2){30,160}, 18,2, RED);
+			return; // vi returner her fordi vi skal ikke tegne mere hvis ikke den er valid, funktionen skal stoppe.
+			}
 
-	if (GuiButton((Rectangle){530, 160,100,25}, "Test")){
-		TraceLog(LOG_INFO, "Test pressed. Input: %s", substructures_input);
-		pressedsubstructures = 1; 
+		// vi skal have lavet et input felt ligesom i "input validation" til at input vores substructure smile 
+		GuiLabel((Rectangle){30, 160, 150, 25}, "Substructure input:");
 
-		substructure_test = toxicphore_function(smilesInput, substructures_input);
-	}
-
-	if (pressedsubstructures){
-		// hvis den er 1 så er der fundet match 
-		if (substructure_test){
-			//GRØN Success-tekst 
-			DrawTextEx(uiFont, "The substructure was found!", (Vector2){30, 190}, 30, 0, goodGreen);
+		//Teksboks til input
+		if (GuiTextBox((Rectangle){220, 160, 300, 25}, substructures_input, 256, editMode)) {
+			editMode = !editMode; 
 		}
-		else {
-            	DrawTextEx(uiFont, "The substructure was not found", (Vector2){30, 190}, 25, 2, softRed);
-		}
-	}
 
-    DrawTextEx(uiFont,
-               TextFormat("SMILES: %s", smilesInput),
-               (Vector2){30, 130},
-               18,
-               2,
-               DARKGRAY);
+		if (GuiButton((Rectangle){530, 160,100,25}, "Test")){
+			TraceLog(LOG_INFO, "Test pressed. Input: %s", substructures_input);
+			pressedsubstructures = 1; 
+			substructure_test = toxicphore_function(smilesInput, substructures_input);
+		}
+		if (pressedsubstructures){
+			// hvis den er 1 så er der fundet match 
+			if (substructure_test){
+				//GRØN Success-tekst 
+				DrawTextEx(uiFont, "The substructure was found!", (Vector2){30, 190}, 30, 0, goodGreen);
+			}
+			else {
+				DrawTextEx(uiFont, "The substructure was not found", (Vector2){30, 190}, 25, 2, softRed);
+			}
+		}
+		DrawTextEx(uiFont,
+	     		TextFormat("SMILES: %s", smilesInput),
+	     			(Vector2){30, 130},
+	     			18,
+	     			2,
+	     			DARKGRAY);
 	}
 }
 
+/*
+ * DrawTab_Nodefeature()
+ * Tab 6: Builds and displays a node feature matrix for each atom in the SMILES string.
+ *
+ * Each row corresponds to one atom, and columns represent computed features
+ * (e.g., atomic number, valence, aromaticity).
+ *
+ * A scroll panel is used to handle wide matrices and long molecules.
+ */
 void DrawTab_Nodefeature() {
+	GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_node_feature_info);
 
+	if(show_node_feature_info){
+		DrawTextEx(uiFont,"Node feature Process", (Vector2){30,80},30,2, BLACK);
+		DrawTextBoxed(
+			uiFont,
+			info_nodefeature_info,
+			(Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
+			30,
+			2,
+			true,
+			DARKGRAY);
+	}
+	else {
+		DrawText("Node Feature Matrix Tab", 30, 80, 25, BLACK);
+		if (!inputValid) {
+			DrawTextEx(uiFont,
+	      			"Please enter and validate a valid SMILES in the Input tab first.",
+	      			(Vector2){30,130}, 18, 2, RED);
+			return;
+		}
+		char atoms[MAX_ATOMS][3] = {0};
+		double node_matrix[MAX_ATOMS][MAX_FEATURES] = {0};
+		int n_atoms = parse_SMILES(smilesInput, atoms, &error_count, errors);
+		if (n_atoms <= 0) {
+			DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
+			return;
+		}
+		build_node_matrix(atoms, n_atoms, node_matrix, &error_count, errors);
+		// 2) Scroll opsætning (samme ide som adjacency)
+		static Vector2 scroll = {0,0};
+		int screenW = GetScreenWidth();
+		int screenH = GetScreenHeight();
+		Rectangle bounds = {
+			30,
+			140,
+			screenW - 60,
+			screenH - 180
+		};
+		// layout
+		const int cellW = 120;
+		const int cellH = 30;
+		const int leftLabelW = 160;               // plads til "idx + atom"
+		const int features = MAX_FEATURES;        // fx 3
+		int contentWidth  = leftLabelW + features * cellW + 80;
+		int contentHeight = (n_atoms + 2) * cellH + 120;  // + header + footer luft
 
-    GuiToggle((Rectangle){1090, 22, 60, 25}, "?", &show_node_feature_info);
+		Rectangle content = {0,0, (float)contentWidth, (float)contentHeight};
+		Rectangle view = {0};
+		GuiScrollPanel(bounds, "Node Feature Matrix", content, &scroll, &view);
 
-    if(show_node_feature_info){
-        DrawTextEx(uiFont,"Node feature Process", (Vector2){30,80},30,2, BLACK);
-        DrawTextBoxed(
-        uiFont,
-        info_nodefeature_info,
-        (Rectangle){ 40, 140, 820, 640 }, // x, y, width, height
-        30,
-        2,
-        true,
-        DARKGRAY
-         );
-        }
-    else {
-    DrawText("Node Feature Matrix Tab", 30, 80, 25, BLACK);
+		BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
 
-    if (!inputValid) {
-        DrawTextEx(uiFont,
-            "Please enter and validate a valid SMILES in the Input tab first.",
-            (Vector2){30,130}, 18, 2, RED);
-        return;
-    }
+		float startX = bounds.x + 20 + scroll.x;
+		float startY = bounds.y + 40 + scroll.y;
 
-    char atoms[MAX_ATOMS][3] = {0};
-    double node_matrix[MAX_ATOMS][MAX_FEATURES] = {0};
+		// 3) Header row
+		DrawTextEx(uiFont, "Node", (Vector2){startX, startY}, 18, 2, BLACK);
+		// navne til features 
+		const char *featureNames[MAX_FEATURES] = {
+			"Atomic #",
+			"Valence",
+			"Aromatic"
+			// hvis MAX_FEATURES > 3
+			};
 
-    int n_atoms = parse_SMILES(smilesInput, atoms);
-    if (n_atoms <= 0) {
-        DrawTextEx(uiFont, "Could not parse SMILES into atoms.", (Vector2){30,160}, 18, 2, RED);
-        return;
-    }
+		for (int f = 0; f < features; f++) {
+			const char *name = (f < 3) ? featureNames[f] : TextFormat("F%d", f);
+			DrawTextEx(uiFont, name, (Vector2){startX + leftLabelW + f * cellW, startY}, 18, 2, BLACK);
+		}
+		// streg under header
+		DrawLineEx((Vector2){startX, startY + 24}, (Vector2){startX + leftLabelW + features * cellW, startY + 24}, 2, BLACK);
+		// 4) Rows
+		for (int i = 0; i < n_atoms; i++) {
+			// venstre label: "i  C"
+			DrawTextEx(uiFont,
+	      			TextFormat("%d   %s", i, atoms[i]),
+	      			(Vector2){startX, startY + (i + 1) * cellH}, 18, 2, BLACK);
+			// celler med features
+			for (int f = 0; f < features; f++) {
+				int v = (int)node_matrix[i][f];
+				DrawTextEx(uiFont, TextFormat("%d", v),
+	       				(Vector2){startX + leftLabelW + f * cellW + 10,
+	       				startY + (i + 1) * cellH},
+	       				18, 2, BLACK);
+			}
+		}
 
-    build_node_matrix(atoms, n_atoms, node_matrix);
+		// 5) Footer info
+		DrawTextEx(uiFont,
+	     		TextFormat("SMILES: %s", smilesInput),
+			(Vector2){startX, startY + (n_atoms + 2) * cellH + 10},
+			18, 2, DARKGRAY);
 
-    // 2) Scroll opsætning (samme ide som adjacency)
-    static Vector2 scroll = {0,0};
-
-    int screenW = GetScreenWidth();
-    int screenH = GetScreenHeight();
-
-    Rectangle bounds = {
-        30,
-        140,
-        screenW - 60,
-        screenH - 180
-    };
-
-    // layout
-    const int cellW = 120;
-    const int cellH = 30;
-
-    const int leftLabelW = 160;               // plads til "idx + atom"
-    const int features = MAX_FEATURES;        // fx 3
-
-    int contentWidth  = leftLabelW + features * cellW + 80;
-    int contentHeight = (n_atoms + 2) * cellH + 120;  // + header + footer luft
-
-    Rectangle content = {0,0, (float)contentWidth, (float)contentHeight};
-    Rectangle view = {0};
-
-    GuiScrollPanel(bounds, "Node Feature Matrix", content, &scroll, &view);
-
-    BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
-
-    float startX = bounds.x + 20 + scroll.x;
-    float startY = bounds.y + 40 + scroll.y;
-
-    // 3) Header row
-    DrawTextEx(uiFont, "Node", (Vector2){startX, startY}, 18, 2, BLACK);
-
-    // navne til features 
-    const char *featureNames[MAX_FEATURES] = {
-        "Atomic #",
-        "Valence",
-        "Aromatic"
-        // hvis MAX_FEATURES > 3
-    };
-
-    for (int f = 0; f < features; f++) {
-        const char *name = (f < 3) ? featureNames[f] : TextFormat("F%d", f);
-        DrawTextEx(uiFont,
-                   name,
-                   (Vector2){startX + leftLabelW + f * cellW, startY},
-                   18, 2, BLACK);
-    }
-
-    // streg under header
-    DrawLineEx((Vector2){startX, startY + 24},
-               (Vector2){startX + leftLabelW + features * cellW, startY + 24},
-               2, BLACK);
-
-    // 4) Rows
-    for (int i = 0; i < n_atoms; i++) {
-
-        // venstre label: "i  C"
-        DrawTextEx(uiFont,
-                   TextFormat("%d   %s", i, atoms[i]),
-                   (Vector2){startX, startY + (i + 1) * cellH},
-                   18, 2, BLACK);
-
-        // celler med features
-        for (int f = 0; f < features; f++) {
-            int v = (int)node_matrix[i][f];
-
-            DrawTextEx(uiFont,
-                       TextFormat("%d", v),
-                       (Vector2){startX + leftLabelW + f * cellW + 10,
-                                 startY + (i + 1) * cellH},
-                       18, 2, BLACK);
-        }
-    }
-
-    // 5) Footer info
-    DrawTextEx(uiFont,
-               TextFormat("SMILES: %s", smilesInput),
-               (Vector2){startX, startY + (n_atoms + 2) * cellH + 10},
-               18, 2, DARKGRAY);
-
-    DrawTextEx(uiFont,
-               TextFormat("Atoms: %d", n_atoms),
-               (Vector2){startX, startY + (n_atoms + 2) * cellH + 35},
-               18, 2, DARKGRAY);
-
-    EndScissorMode();
+		DrawTextEx(uiFont,
+			TextFormat("Atoms: %d", n_atoms),
+			(Vector2){startX, startY + (n_atoms + 2) * cellH + 35},
+	     		18, 2, DARKGRAY);
+		EndScissorMode();
 	}
 }
-
+/*
+ * Clear()
+ * Resets the entire application state to "startup defaults".
+ *
+ * This clears:
+ *  - input buffers,
+ *  - validation flags/results,
+ *  - cached molecule/valence computation,
+ *  - traversal state (BFS/DFS),
+ *  - cached graph layout state.
+ *
+ * Also frees any dynamically allocated memory used by the valence module.
+ */
 void Clear() {
-    smilesInput[0] = '\0';
+	smilesInput[0] = '\0';
 	substructures_input[0] = '\0'; 
 	graphComputed = false; 
-    inputValid = false;
-    moleculeValidated = false;
-    moleculeLoaded = false;
-    val_flag = false;
-    // end_flag = false; se linje 125
-
-    smiles_input_size = 0;
-    atomcountstactic = 0;
-    smiles_size = 0;
-
-    free(atomIndices);
-    free(molecule);
-    atomIndices = NULL;
-    molecule = NULL;
-
-    bfsRan = false;
-    dfsRan = false;
-    bfsCount = 0;
-    bfsLog[0] = '\0';
+	inputValid = false;
+	moleculeValidated = false;
+	moleculeLoaded = false;
+	val_flag = false;
+	atomcountstactic = 0;
+	free_valency_memory(&molecule); 
+	bfsRan = false;
+	dfsRan = false;
+	bfsCount = 0;
+	bfsLog[0] = '\0';
 }

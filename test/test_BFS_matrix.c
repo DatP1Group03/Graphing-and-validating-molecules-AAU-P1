@@ -2,8 +2,8 @@
 #include "bfs_matrix.h"
 
 /*
- * 1) Sammenhængende graf
- * Forventet BFS fra node 0: 0 1 2 4 3 5
+ * 1) Testing for connected graphs
+ * Expected BFS traversal from node 0: 0 1 2 4 3 5
  */
 TEST_CASE(bfs_connected_graph, {
     int n = 6;
@@ -27,6 +27,10 @@ TEST_CASE(bfs_connected_graph, {
     CHECK_EQ_INT(expected[4], bfs[4]);
     CHECK_EQ_INT(expected[5], bfs[5]);
 })
+
+// Tests BFS traversal on a connected graph with double bonds.
+// Verifies that BFS correctly traverses all reachable nodes,
+// ignoring bond order values and using only connectivity.
 TEST_CASE(bfs_connected_graph_dobbeltbindinger, {
     int n = 6;
     const int adj[6][6] = {
@@ -51,9 +55,9 @@ TEST_CASE(bfs_connected_graph_dobbeltbindinger, {
 })
 
 /*
- * 2) Ikke-sammenhængende graf: to komponenter
- * 0-1-2 er forbundet, 3-4 er en separat komponent.
- * Fra src=0 må vi kun se 0,1,2., vi forventer altså ikke at 4 og 5 er med!
+ * Not connected graph (it is divided into two components 
+	* 0-1-2 are connected, 3-4 is a separate component
+	* From src=0 we must see only 0,1,2 in our traversal. We do not expect 4 & 5 to show. 
  */
 TEST_CASE(bfs_disconnected_graph_from_0, {
     int n = 5;
@@ -75,8 +79,8 @@ TEST_CASE(bfs_disconnected_graph_from_0, {
 })
 
 /*
- * 3) Single-node graf (n = 1).
- * Start i node 0 → eneste node er 0.
+ * Single-node graph (n = 1).
+ * Start i node 0 → only connected node is 0.
  */
 TEST_CASE(bfs_single_node, {
     int n = 1;
@@ -92,8 +96,8 @@ TEST_CASE(bfs_single_node, {
 })
 
 /*
- * 4) Graf uden kanter.
- * Alle noder er isolerede. Starter vi i node 2, skal vi kun besøge 2.
+ * 4) Graph without edges
+	* All nodes are "isolated". If we start from node, we only visits node 2. 
  */
 TEST_CASE(bfs_no_edges_from_2, {
     int n = 4;
@@ -112,8 +116,8 @@ TEST_CASE(bfs_no_edges_from_2, {
 })
 
 /*
- * 5) Lineær graf 0-1-2-3-4, start i midten (2).
- * BFS fra 2: 2,1,3,0,4 (fordi vi kigger naboer i rækkefølgen v = 0..4).
+	* Linear graph 0-1-2-3-4, if we start from node 2 what do we get?
+	* We expect the BFS traversal from node 2 to be: 2-1-3-0-4 
  */
 TEST_CASE(bfs_line_graph_start_middle, {
     int n = 5;
@@ -137,10 +141,9 @@ TEST_CASE(bfs_line_graph_start_middle, {
 })
 
 /*
- * 6) Graf med cyklus 0-1-2-3-0
- * Vi tester at vi stadig kun besøger hver node én gang.
- * Med nabo-iterationen v=0..3 bliver BFS fra 0: 0,1,3,2
- * (0 ser 1 og 3 → enqueue [1,3]; derefter 1 ser 2; 3 ser også 2, men den er besøgt).
+ * Graph with a cycle (cycle is 0-1-2-3-0)
+	* We test that we only still visits one node once.
+	* We expect BFS traversal from 0 to be: 0,1,3,2
  */
 TEST_CASE(bfs_cycle_graph, {
     int n = 4;
@@ -160,6 +163,10 @@ TEST_CASE(bfs_cycle_graph, {
     CHECK_EQ_INT(expected[2], bfs[2]);
     CHECK_EQ_INT(expected[3], bfs[3]);
 })
+
+// Tests BFS traversal on a cyclic graph with double bonds (represented by weight 2).
+// The test ensures that BFS correctly visits each node exactly once and handles cycles
+// without getting stuck or revisiting nodes.
 TEST_CASE(bfs_cycle_graph_dobbeltbindinger, {
     int n = 4;
     const int adj[4][4] = {

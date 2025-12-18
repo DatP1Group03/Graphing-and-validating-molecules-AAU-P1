@@ -10,9 +10,12 @@
  * adj[][] is the adjacency matrix we are traversing
  * n is the total number of nodes
  * node_t node is the struct that contains each node, what they are connected to and how we got to the node (parent), so we can detect cycle
- * bfsmatrix is a list of the total traversal each node.
+ * dfsmatrix is a list of the total traversal each node.
  * visited[] is simply where subscript is the node, and 1 represnt that we have visited.
  * count - how many times dfs_matrix has run.
+ * parent is an array. Parent[i] stores the node from which node i was discovered during DFS. If we go from node u to node v then parent[v] = u 
+ * cycles is a 2d array which keeps track of the nodes from where a cycle has started and ended. 
+ * cycle_count is how many cycles there are in the undirected graph.  
  */
 int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int visited[], int parent[],int cycles[][2], int *cycle_count, int count) {
     // we mark node as visited, by using our matrix visited, we also insert ved node into the bfs matrix for the "list" of traversal.
@@ -94,17 +97,7 @@ int dfs_matrix(int startnode, int n, const int adj[n][n], int dfsmatrix[], int v
     return count;
 }
 
-/* hvis man ved at gennemløbe naboerne til en node, finder en nabo som er visited,
- * og som ikke er parent[startnode] (altså den forrige node).
-int DFS_cycledetektion(int n, const int adj[][], const int dfsmatrix[], const int visited[], const int parent[]) {
-    int node, naboer;
-
-    for (node = 0; node < n; node++) {
-
-    }
-}
-*/
-
+/* the following function describes DFS in detail in the terminal. */ 
 void print_DFS_explanation() {
     printf("DFS (Stands for Depth-First Search) goes along a path as deeply as possible along each branch before backtracking. \n");
     printf("DFS starts at a chosen node and visits it. \n");

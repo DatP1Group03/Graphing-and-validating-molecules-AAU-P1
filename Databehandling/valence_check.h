@@ -20,12 +20,8 @@ typedef struct {
 
 } Symbol;
 
-extern Symbol *molecule;
-extern int *atomIndices;
-extern int atomCount;
 
-
-int run_valence_check(int atom_size, const char input[], int matrix[atom_size][atom_size]);
-
+int run_valence_check(Symbol **molecule, int smile_size, int atom_size, const char input[], int matrix[atom_size][atom_size]);
+void free_valency_memory(Symbol **molecule);
 
 #endif
